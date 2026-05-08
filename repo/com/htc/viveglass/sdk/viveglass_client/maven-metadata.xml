@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.htc.viveglass.sdk</groupId>
+  <artifactId>viveglass_client</artifactId>
+  <versioning>
+    <latest>0.0.28-SNAPSHOT</latest>
+    <versions>
+      <version>0.0.28-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20260209040401</lastUpdated>
+  </versioning>
+</metadata>

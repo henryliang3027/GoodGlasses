@@ -1,0 +1,74 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.htc.viveglass.sdk",
+    "module": "viveglass_client",
+    "version": "0.0.28-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.5"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "androidJvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib-jdk8",
+          "version": {
+            "requires": "1.8.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "viveglass_client-0.0.28-SNAPSHOT.aar",
+          "url": "viveglass_client-0.0.28-SNAPSHOT.aar",
+          "size": 85158,
+          "sha512": "bd9a522beb0eb9217c0c13ff04f98e6419b4aeae1fdfa5bcce00a5bc834524977ef36787d97140a02c4a118a7e478c6318d7e7e01b2c018381d57241f813922d",
+          "sha256": "f64db6bcad1e1ec02e78d72ad8db054a29c887e8168dce8f640fcae851a23321",
+          "sha1": "636fcccd279f55be9f29b86f8c161b4464f9e6d9",
+          "md5": "0624cdbd91096e25acbd1b163ac82b3f"
+        }
+      ]
+    },
+    {
+      "name": "releaseRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "androidJvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib-jdk8",
+          "version": {
+            "requires": "1.8.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "viveglass_client-0.0.28-SNAPSHOT.aar",
+          "url": "viveglass_client-0.0.28-SNAPSHOT.aar",
+          "size": 85158,
+          "sha512": "bd9a522beb0eb9217c0c13ff04f98e6419b4aeae1fdfa5bcce00a5bc834524977ef36787d97140a02c4a118a7e478c6318d7e7e01b2c018381d57241f813922d",
+          "sha256": "f64db6bcad1e1ec02e78d72ad8db054a29c887e8168dce8f640fcae851a23321",
+          "sha1": "636fcccd279f55be9f29b86f8c161b4464f9e6d9",
+          "md5": "0624cdbd91096e25acbd1b163ac82b3f"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\USER\\\\Documents\\\\git_projects\\\\ViveGlassSample\\\\repo\\\\com\\\\htc\\\\viveglass\\\\sdk\\\\viveglass_client\")",
+      "Bash(Select-Object FullName, Length)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\USER\\\\Documents\\\\git_projects\\\\ViveGlassSample\\\\app\\\\src\\\\main\\\\java\\\\com\\\\htc\\\\viveglass\\\\viveglasssample\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(.\\\\gradlew.bat dependencies *)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; Set-Location \"C:\\\\Users\\\\USER\\\\AndroidStudioProjects\\\\GoodGlasses\"; .\\\\gradlew.bat dependencies --configuration releaseRuntimeClasspath 2>&1 | Select-Object -First 120)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; Set-Location \"C:\\\\Users\\\\USER\\\\AndroidStudioProjects\\\\GoodGlasses\"; .\\\\gradlew.bat dependencies --configuration releaseRuntimeClasspath 2>&1 | Select-Object -First 150)"
+    ]
+  }
+}
