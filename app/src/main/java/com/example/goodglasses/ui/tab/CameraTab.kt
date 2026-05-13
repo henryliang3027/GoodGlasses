@@ -235,55 +235,29 @@ fun CameraTab(
                 )
                 states.value.inventoryItems.isNotEmpty() -> {
                     states.value.inventoryItems.forEachIndexed { index, item ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        val positionLabel = if (item.position == "top") "上層" else "下層"
+                        Text(
+                            text = "$positionLabel 缺貨",
+                            color = AppColors.TextBlue400,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = if (index == 0) 0.dp else 8.dp, bottom = 4.dp)
+                        )
+                        item.outOfStock.forEach { name ->
                             Text(
-                                text = item.name,
+                                text = "• $name",
                                 color = AppColors.TextWhite,
                                 fontSize = 14.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "${item.count} 瓶",
-                                color = AppColors.TextBlue400,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                modifier = Modifier.padding(start = 8.dp, bottom = 2.dp)
                             )
                         }
                         if (index < states.value.inventoryItems.lastIndex) {
                             HorizontalDivider(
+                                modifier = Modifier.padding(top = 8.dp),
                                 thickness = 0.5.dp,
                                 color = AppColors.BorderGray700_50
                             )
                         }
-                    }
-                    HorizontalDivider(
-                        thickness = 1.dp,
-                        color = AppColors.BorderGray600
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Total",
-                            color = AppColors.TextGray400,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${states.value.inventoryItems.sumOf { it.count }} 瓶",
-                            color = AppColors.TextBlue400,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
                 else -> Box(
@@ -291,7 +265,7 @@ fun CameraTab(
                     contentAlignment = Alignment.Center
                 ) {
                     CustomText(
-                        "Result will appear here after capture",
+                        if (states.value.hasAnalyzed) "目前無缺貨商品" else "",
                         color = AppColors.TextGray500
                     )
                 }

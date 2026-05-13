@@ -4,7 +4,9 @@ import android.graphics.Bitmap
 import android.view.Surface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.goodglasses.TAG
 import com.example.goodglasses.ViveGlassKitManager
+import com.example.goodglasses.util.Logger
 import com.example.goodglasses.data.InventoryItem
 import com.example.goodglasses.data.InventoryRepository
 import com.htc.viveglass.sdk.KeyEvent
@@ -20,7 +22,8 @@ data class CameraUiState(
     val previewRatio: Float = 1.8f,
     val isAnalyzing: Boolean = false,
     val inventoryItems: List<InventoryItem> = emptyList(),
-    val analysisError: String? = null
+    val analysisError: String? = null,
+    val hasAnalyzed: Boolean = false
 )
 
 sealed interface CameraEvent {
@@ -30,6 +33,7 @@ sealed interface CameraEvent {
 }
 
 class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
+    private val log = Logger.instance
     private val manager: ViveGlassKitManager = viveGlassKitManager
     private val repository = InventoryRepository()
 
@@ -81,10 +85,26 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
             _uiState.update { it.copy(isAnalyzing = true, inventoryItems = emptyList(), analysisError = null) }
             repository.analyzeImage(bitmap).fold(
                 onSuccess = { items ->
-                    _uiState.update { it.copy(isAnalyzing = false, inventoryItems = items) }
+                    _uiState.update { it.copy(isAnalyzing = false, inventoryItems = items, hasAnalyzed = true) }
+                    if (items.isNotEmpty()) {
+                        val totalOutOfStock = items.sumOf { it.outOfStock.size }
+                        val text = if (totalOutOfStock <= 3) {
+                            items.joinToString(", ") { item ->
+                                val label = if (item.position == "top") "上層" else "下層"
+                                val names = item.outOfStock.joinToString("、")
+                                "${label}缺貨商品 $names"
+                            }
+                        } else {
+                            "多項商品缺貨, 請參考手機上的清單"
+                        }
+                        log.d(TAG, "speakText: $text")
+                        manager.speakText(text)
+                    } else {
+                        manager.speakText("目前無缺貨商品")
+                    }
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isAnalyzing = false, analysisError = error.message) }
+                    _uiState.update { it.copy(isAnalyzing = false, analysisError = error.message, hasAnalyzed = true) }
                 }
             )
         }

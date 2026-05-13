@@ -41,7 +41,7 @@ import com.example.goodglasses.util.NoOpLogger
 
 class MainActivity : AppCompatActivity() {
 
-    val enableDebugLog = false
+    val enableDebugLog = true
 
     var viveClientManager: ViveGlassKitManager? = null
 

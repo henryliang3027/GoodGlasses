@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
+import java.util.Locale
 
 interface ViveGlassKitInterface {
 
@@ -58,6 +59,7 @@ interface ViveGlassKitInterface {
     fun captureImage()
     fun startVideoStreaming()
     fun stopVideoStreaming()
+    fun speakText(text: String)
     fun cleanup()
 }
 
@@ -148,7 +150,18 @@ class ViveGlassKitManager(
 
         override fun onSpeechTranscribed(event: TranscribedEvent?, text: String?) {}
 
-        override fun onTextSpoken(event: SynthesisEvent?) {}
+        override fun onTextSpoken(event: SynthesisEvent?) {
+            when (event) {
+                SynthesisEvent.SUCCESS ->
+                    log.d(TAG, "onTextSpoken() event: [$event]")
+                SynthesisEvent.ERROR,
+                SynthesisEvent.ERROR_RESOURCE_CONFLICT,
+                null ->
+                    log.e(TAG, "onTextSpoken() event: [$event]")
+                SynthesisEvent.ERROR_UNSUPPORTED_LOCALE ->
+                    log.e(TAG, "onTextSpoken() event: [$event]")
+            }
+        }
 
         override fun onKeyEvent(event: KeyEvent?) {
             if (event == null) return
@@ -310,6 +323,10 @@ class ViveGlassKitManager(
 
     override fun stopVideoStreaming() {
         glass.stopVideoStreaming()
+    }
+
+    override fun speakText(text: String) {
+        glass.speakText(text, glass.userPreferredLocale)
     }
 
     override fun cleanup() {
