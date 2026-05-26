@@ -33,7 +33,6 @@ import com.htc.viveglass.sdk.ViveGlass
 import com.example.goodglasses.ui.tab.AppDestination
 import com.example.goodglasses.ui.tab.CameraScreen
 import com.example.goodglasses.ui.tab.GlassesScreen
-import com.example.goodglasses.ui.tab.setSimulator
 import com.example.goodglasses.ui.theme.AppColors
 import com.example.goodglasses.util.DebugLogger
 import com.example.goodglasses.util.Logger
@@ -63,7 +62,7 @@ class MainActivity : AppCompatActivity() {
 
             viveClientManager = ViveGlassKitManager(glass, kit, simulator, appContext, audioManager)
             val manager = viveClientManager ?: return@setContent
-            SampleApp(manager, simulator, appContext)
+            SampleApp(manager, appContext)
         }
     }
 
@@ -81,7 +80,6 @@ class MainActivity : AppCompatActivity() {
 @Composable
 fun SampleApp(
     viveClientManager: ViveGlassKitManager,
-    simulator: ViveGlassSimulator,
     context: Context
 ) {
     val navController = rememberNavController()
@@ -163,7 +161,6 @@ fun SampleApp(
                 navController = navController,
                 startDestination = AppDestination.Glasses.route,
             ) {
-                setSimulator(simulator)
                 composable(AppDestination.Glasses.route) { GlassesScreen(viveClientManager) }
                 composable(AppDestination.Camera.route) { CameraScreen(viveClientManager) }
             }

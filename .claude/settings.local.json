@@ -7,7 +7,30 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(.\\\\gradlew.bat dependencies *)",
       "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; Set-Location \"C:\\\\Users\\\\USER\\\\AndroidStudioProjects\\\\GoodGlasses\"; .\\\\gradlew.bat dependencies --configuration releaseRuntimeClasspath 2>&1 | Select-Object -First 120)",
-      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; Set-Location \"C:\\\\Users\\\\USER\\\\AndroidStudioProjects\\\\GoodGlasses\"; .\\\\gradlew.bat dependencies --configuration releaseRuntimeClasspath 2>&1 | Select-Object -First 150)"
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; Set-Location \"C:\\\\Users\\\\USER\\\\AndroidStudioProjects\\\\GoodGlasses\"; .\\\\gradlew.bat dependencies --configuration releaseRuntimeClasspath 2>&1 | Select-Object -First 150)",
+      "Bash(dir \"C:\\\\Users\\\\USER\\\\Documents\\\\git_projects\\\\ViveGlassSample\\\\repo\" /s /b)",
+      "Bash(grep -oP '[A-Z_]{3,}[0-9]*')",
+      "Bash(python3 *)",
+      "Read(//tmp/**)",
+      "Bash(unzip -o classes.jar \"com/htc/viveglass/sdk/ImageQuality.class\" -d .)",
+      "Bash(grep -a '[A-Z][A-Z0-9_]\\\\{2,\\\\}' com/htc/viveglass/sdk/ImageQuality.class)",
+      "Bash(unzip -l repo/com/htc/viveglass/sdk/viveglass_client/0.0.28-SNAPSHOT/viveglass_client-0.0.28-20260209.040400-1.aar)",
+      "Bash(unzip -l viveglass_client-0.0.28-20260209.040400-1.aar)",
+      "Bash(mkdir -p temp_extract)",
+      "Bash(unzip -q viveglass_client-0.0.28-20260209.040400-1.aar -d temp_extract)",
+      "Bash(unzip -l temp_extract/classes.jar)",
+      "Bash(unzip -o classes.jar \"com/htc/viveglass/sdk/ImageQuality.class\" \"com/htc/viveglass/sdk/ImageQuality\\\\$1.class\" -d .)",
+      "Bash(xxd com/htc/viveglass/sdk/ImageQuality.class)",
+      "Bash(unzip -o classes.jar \"com/htc/viveglass/sdk/ViveGlass.class\" -d .)",
+      "Bash(grep -a '[a-zA-Z][a-zA-Z0-9_]\\\\{3,\\\\}' com/htc/viveglass/sdk/ViveGlass.class)",
+      "Bash(grep -ao '[a-zA-Z][a-zA-Z0-9_]\\\\{3,\\\\}' /tmp/viveglass_sdk/com/htc/viveglass/sdk/ViveGlass.class)",
+      "Bash(xxd /tmp/viveglass_sdk/com/htc/viveglass/sdk/ViveGlass.class)",
+      "Bash(unzip -o classes.jar \"com/htc/viveglass/sdk/ViveGlassClient.class\" -d .)",
+      "Bash(grep -ao '[a-zA-Z][a-zA-Z0-9_]\\\\{3,\\\\}' com/htc/viveglass/sdk/ViveGlassClient.class)",
+      "Bash(unzip -o classes.jar -d .)",
+      "Bash(grep -v \"\\\\$\")",
+      "Bash(grep -ao '[a-zA-Z][a-zA-Z0-9_]\\\\{3,\\\\}' /tmp/viveglass_sdk/com/htc/viveglass/sdk/IViveGlassClient.class)",
+      "Bash(xxd '/tmp/viveglass_sdk/com/htc/viveglass/sdk/IViveGlassClient$Stub$Proxy.class')"
     ]
   }
 }

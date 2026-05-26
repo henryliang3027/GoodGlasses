@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -75,38 +77,43 @@ fun CameraTab(
         horizontalAlignment = Alignment.Start
     ) {
         //--------------------------------------------------
-        Spacer(modifier = Modifier.height(10.dp))
-        CustomTitleWithIcon(
-            drawable.camera_solid_full,
-            iconSize = 25,
-            iconDes = "",
-            iconColor = AppColors.TextBlue400,
-            titleText = " Photo & Video Capture",
-            fontSize = 23
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        CustomHorizontalDivider()
+//        CustomHorizontalDivider()
         //--------------------------------------------------
 
-        Spacer(modifier = Modifier.height(spacerHeight))
+//        Spacer(modifier = Modifier.height(spacerHeight))
         CustomTitleWithIcon(
             drawable.camera_solid_full,
             iconDes = "",
-            iconColor = AppColors.BgIndigo600,
+            iconColor = AppColors.TextBlue400,
             iconSize = 25,
-            titleText = "Take Photo: ",
+            titleText = " 辨識模式",
             fontSize = 16,
             fontWeight = FontWeight.Normal
         )
         Spacer(modifier = Modifier.height(10.dp))
-        CustomButton(
-            "Take Photo",
-            color = AppColors.BgIndigo600,
-            height = 50,
-            onClick = {
-                onEvent(CameraEvent.TakePhotoClicked)
-            })
+        ModeToggle(
+            selectedMode = states.value.analysisMode,
+            onModeSelected = { onEvent(CameraEvent.ModeChanged(it)) }
+        )
         Spacer(modifier = Modifier.height(spacerHeight))
+//        CustomTitleWithIcon(
+//            drawable.camera_solid_full,
+//            iconDes = "",
+//            iconColor = AppColors.BgIndigo600,
+//            iconSize = 25,
+//            titleText = "Take Photo: ",
+//            fontSize = 16,
+//            fontWeight = FontWeight.Normal
+//        )
+//        Spacer(modifier = Modifier.height(10.dp))
+//        CustomButton(
+//            "Take Photo",
+//            color = AppColors.BgIndigo600,
+//            height = 50,
+//            onClick = {
+//                onEvent(CameraEvent.TakePhotoClicked)
+//            })
+//        Spacer(modifier = Modifier.height(spacerHeight))
 
         //--------------------------------------------------
 
@@ -260,12 +267,45 @@ fun CameraTab(
                         }
                     }
                 }
+                states.value.expiryItems.isNotEmpty() -> {
+                    states.value.expiryItems.forEachIndexed { index, item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = if (index == 0) 0.dp else 6.dp, bottom = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item.name,
+                                color = AppColors.TextWhite,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
+                                color = AppColors.TextBlue400,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (index < states.value.expiryItems.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 6.dp),
+                                thickness = 0.5.dp,
+                                color = AppColors.BorderGray700_50
+                            )
+                        }
+                    }
+                }
                 else -> Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     CustomText(
-                        if (states.value.hasAnalyzed) "目前無缺貨商品" else "",
+                        if (states.value.hasAnalyzed) {
+                            if (states.value.analysisMode == AnalysisMode.INVENTORY) "目前無缺貨商品" else "目前無效期資料"
+                        } else "",
                         color = AppColors.TextGray500
                     )
                 }
@@ -301,6 +341,39 @@ fun Modifier.dashedBorder(
         )
     }
 )
+
+@Composable
+fun ModeToggle(
+    selectedMode: AnalysisMode,
+    onModeSelected: (AnalysisMode) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(25.dp))
+            .background(AppColors.BgDarkSecondary)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        listOf(AnalysisMode.INVENTORY to "缺貨", AnalysisMode.EXPIRY to "效期").forEach { (mode, label) ->
+            val isSelected = selectedMode == mode
+            Button(
+                onClick = { onModeSelected(mode) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(22.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) AppColors.BgBlue600 else Color.Transparent,
+                    contentColor = if (isSelected) Color.White else AppColors.TextGray400,
+                    disabledContainerColor = Color.Transparent,
+                    disabledContentColor = AppColors.TextGray400
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                Text(label, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
 
 @Composable
 fun StreamPreview(

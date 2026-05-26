@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.goodglasses.TAG
 import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.util.Logger
+import com.example.goodglasses.data.ExpiryItem
 import com.example.goodglasses.data.InventoryItem
 import com.example.goodglasses.data.InventoryRepository
 import com.htc.viveglass.sdk.KeyEvent
@@ -15,13 +16,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class AnalysisMode { INVENTORY, EXPIRY }
+
 data class CameraUiState(
     val isVideoRecording: Boolean = false,
     val isImageCapturing: Boolean = false,
-    val isSimulator: Boolean = false,
     val previewRatio: Float = 1.8f,
     val isAnalyzing: Boolean = false,
+    val analysisMode: AnalysisMode = AnalysisMode.INVENTORY,
     val inventoryItems: List<InventoryItem> = emptyList(),
+    val expiryItems: List<ExpiryItem> = emptyList(),
     val analysisError: String? = null,
     val hasAnalyzed: Boolean = false
 )
@@ -30,6 +34,7 @@ sealed interface CameraEvent {
     data object TakePhotoClicked : CameraEvent
     data object StartRecordingClicked : CameraEvent
     data object StopRecordingClicked : CameraEvent
+    data class ModeChanged(val mode: AnalysisMode) : CameraEvent
 }
 
 class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
@@ -47,7 +52,11 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
         viewModelScope.launch {
             manager.imageReceived.collect { bmp ->
                 _latestImageReceived.value = bmp
-                analyzeImage(bmp)
+                log.d(TAG, "imageReceived: width=${bmp.width}, height=${bmp.height}")
+                when (uiState.value.analysisMode) {
+                    AnalysisMode.INVENTORY -> analyzeInventory(bmp)
+                    AnalysisMode.EXPIRY -> analyzeExpiry(bmp)
+                }
             }
         }
         viewModelScope.launch {
@@ -66,11 +75,6 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
             }
         }
         viewModelScope.launch {
-            manager.isSimulator.collect { simulator ->
-                _uiState.update { it.copy(isSimulator = simulator) }
-            }
-        }
-        viewModelScope.launch {
             manager.keyEvent.collect { event ->
                 if (event == KeyEvent.AIBUTTON) {
                     clearPreview()
@@ -80,7 +84,7 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
         }
     }
 
-    private fun analyzeImage(bitmap: Bitmap) {
+    private fun analyzeInventory(bitmap: Bitmap) {
         viewModelScope.launch {
             _uiState.update { it.copy(isAnalyzing = true, inventoryItems = emptyList(), analysisError = null) }
             repository.analyzeImage(bitmap).fold(
@@ -110,6 +114,31 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
         }
     }
 
+    private fun analyzeExpiry(bitmap: Bitmap) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzing = true, expiryItems = emptyList(), analysisError = null) }
+            repository.analyzeExpiry(bitmap).fold(
+                onSuccess = { items ->
+                    _uiState.update { it.copy(isAnalyzing = false, expiryItems = items, hasAnalyzed = true) }
+                    if (items.isNotEmpty()) {
+                        val text = if (items.size <= 3) {
+                            items.joinToString("，") { "${it.name} 效期 ${it.year}年${it.month}月${it.day}日" }
+                        } else {
+                            "偵測到 ${items.size} 項商品效期，請參考手機上的清單"
+                        }
+                        log.d(TAG, "speakText: $text")
+                        manager.speakText(text)
+                    } else {
+                        manager.speakText("目前無效期資料")
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isAnalyzing = false, analysisError = error.message, hasAnalyzed = true) }
+                }
+            )
+        }
+    }
+
     fun onEvent(event: CameraEvent) {
         when (event) {
             CameraEvent.TakePhotoClicked -> {
@@ -123,12 +152,23 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
             CameraEvent.StopRecordingClicked -> {
                 manager.stopVideoStreaming()
             }
+            is CameraEvent.ModeChanged -> {
+                _uiState.update {
+                    it.copy(
+                        analysisMode = event.mode,
+                        inventoryItems = emptyList(),
+                        expiryItems = emptyList(),
+                        analysisError = null,
+                        hasAnalyzed = false
+                    )
+                }
+            }
         }
     }
 
     fun clearPreview() {
         _latestImageReceived.value = null
-        _uiState.update { it.copy(inventoryItems = emptyList(), analysisError = null) }
+        _uiState.update { it.copy(inventoryItems = emptyList(), expiryItems = emptyList(), analysisError = null) }
     }
 
     fun attachSurface(surface: Surface) {

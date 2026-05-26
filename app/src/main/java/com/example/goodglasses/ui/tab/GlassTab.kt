@@ -18,26 +18,6 @@ import androidx.compose.ui.unit.dp
 import com.example.goodglasses.ui.components.CustomHorizontalDivider
 import com.example.goodglasses.ui.components.CustomText
 import com.example.goodglasses.ui.components.CustomTitleWithIcon
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.goodglasses.R.drawable
 import com.example.goodglasses.ui.components.CustomButton
@@ -54,8 +34,6 @@ fun GlassTab(
     val spacerHeight = 30.dp
     val spacerHeightSecond = 10.dp
 
-    var selectedMode by rememberSaveable { mutableStateOf(DeviceMode.NULL) }
-    val isStartEnabled = selectedMode != DeviceMode.NULL
     Spacer(modifier = Modifier.height(20.dp))
 
     Column(
@@ -81,39 +59,6 @@ fun GlassTab(
         //--------------------------------------------------
 
         Spacer(modifier = Modifier.height(spacerHeightSecond))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
-
-            ) {
-                CustomText("Device Mode:")
-            }
-
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
-
-            ) {
-                ExposedDropdown(
-                    selectedOption = selectedMode,
-                    onSelected = {
-                        selectedMode = it
-                        onEvent(GlassEvent.DeviceModeChanged(selectedMode))
-                    }
-                )
-            }
-        }
-
-        //--------------------------------------------------
-
         Spacer(modifier = Modifier.height(spacerHeight))
         Box(
             modifier = Modifier
@@ -148,9 +93,7 @@ fun GlassTab(
         CustomButton(
             states.value.textConnectButton,
             color = AppColors.BgBlue600,
-            disabledColor = AppColors.BgDarkSecondary,
             height = 50,
-            enable = isStartEnabled,
             onClick = {
                 onEvent(GlassEvent.ConnectClicked)
             })
@@ -159,76 +102,3 @@ fun GlassTab(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ExposedDropdown(
-    selectedOption: DeviceMode,
-    onSelected: (DeviceMode) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val options = listOf(DeviceMode.EAGLE, DeviceMode.SIMULATOR)
-
-    val colorTextFieldColors = TextFieldDefaults.colors(
-        focusedContainerColor = AppColors.BgDarkSecondary,
-        unfocusedContainerColor = AppColors.BgDarkSecondary,
-        focusedTextColor = AppColors.TextWhite,
-        unfocusedTextColor = AppColors.TextWhite,
-        focusedIndicatorColor = Color.Transparent,
-        unfocusedIndicatorColor = Color.Transparent,
-        focusedTrailingIconColor = AppColors.TextWhite,
-        unfocusedTrailingIconColor = AppColors.TextWhite,
-        focusedPlaceholderColor = AppColors.TextWhite,
-        unfocusedPlaceholderColor = AppColors.TextWhite
-    )
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.padding(0.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .menuAnchor()
-                .width(200.dp)
-                .height(55.dp)
-                .shadow(10.dp, RoundedCornerShape(10.dp))
-                .background(AppColors.BgDarkPrimary, RoundedCornerShape(10.dp))
-        ) {
-            OutlinedTextField(
-                modifier = Modifier.fillMaxSize(),
-                value = selectedOption.label,
-                onValueChange = {},
-                readOnly = true,
-                placeholder = { Text("Select", fontWeight = FontWeight.Bold, color = AppColors.TextGray400) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                shape = RoundedCornerShape(10.dp),
-                colors = colorTextFieldColors,
-                textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                singleLine = true
-            )
-        }
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = AppColors.BgDarkSecondary,
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            option.label,
-                            color = AppColors.TextWhite,
-                            fontSize = 16.sp
-                        )
-                    },
-                    onClick = {
-                        onSelected(option)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}

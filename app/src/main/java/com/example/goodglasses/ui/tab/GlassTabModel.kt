@@ -10,19 +10,11 @@ import kotlinx.coroutines.launch
 
 data class GlassUiState(
     val isConnected: Boolean = false,
-    val textConnectButton: String = "Connect",
-    val isSimulator: Boolean = false
+    val textConnectButton: String = "Connect"
 )
-
-enum class DeviceMode(val label: String) {
-    EAGLE("Eagle"),
-    SIMULATOR("Simulator"),
-    NULL("")
-}
 
 sealed interface GlassEvent {
     data object ConnectClicked : GlassEvent
-    data class DeviceModeChanged(val mode: DeviceMode) : GlassEvent
 }
 
 class GlassTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
@@ -31,6 +23,9 @@ class GlassTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
     val uiState: StateFlow<GlassUiState> = _uiState
 
     init {
+        manager.setSimulator(false)
+        manager.connect()
+
         viewModelScope.launch {
             manager.connection.collect { connected ->
                 _uiState.update {
@@ -38,14 +33,6 @@ class GlassTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                         isConnected = connected,
                         textConnectButton = if (!connected) "Connect" else "Disconnect"
                     )
-                }
-            }
-        }
-
-        viewModelScope.launch {
-            manager.isSimulator.collect { simulator ->
-                _uiState.update {
-                    it.copy(isSimulator = simulator)
                 }
             }
         }
@@ -58,18 +45,6 @@ class GlassTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                     manager.connect()
                 else
                     manager.disconnect()
-            }
-
-            is GlassEvent.DeviceModeChanged -> {
-                when (event.mode) {
-                    DeviceMode.EAGLE -> {
-                        manager.setSimulator(false)
-                    }
-                    DeviceMode.SIMULATOR -> {
-                        manager.setSimulator(true)
-                    }
-                    else -> {}
-                }
             }
         }
     }
