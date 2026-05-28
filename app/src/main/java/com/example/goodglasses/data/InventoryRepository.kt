@@ -14,7 +14,15 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
 data class InventoryItem(val position: String, val outOfStock: List<String>)
-data class ExpiryItem(val name: String, val year: Int, val month: Int, val day: Int)
+data class ObbPoint(val x: Int, val y: Int)
+data class ExpiryItem(
+    val name: String,
+    val year: Int,
+    val month: Int,
+    val day: Int,
+    val obb: List<ObbPoint>,
+    val dateBbox: List<Int>?            // [x1, y1, x2, y2] 或 null
+)
 
 class InventoryRepository {
 
@@ -82,14 +90,23 @@ class InventoryRepository {
             val obj = dataArray.getJSONObject(i)
             val name = obj.getString("name")
             val dateObj = obj.optJSONObject("date")
-            items.add(
-                if (dateObj != null) ExpiryItem(
-                    name = name,
-                    year = dateObj.getInt("year"),
-                    month = dateObj.getInt("month"),
-                    day = dateObj.getInt("day")
-                ) else ExpiryItem(name = name, year = 0, month = 0, day = 0)
-            )
+            val obbArray = obj.getJSONArray("obb")
+            val obb = (0 until obbArray.length()).map { j ->
+                val pt = obbArray.getJSONArray(j)
+                ObbPoint(pt.getInt(0), pt.getInt(1))
+            }
+            val dateBboxArray = obj.optJSONArray("date_bbox")
+            val dateBbox = dateBboxArray?.let { arr ->
+                (0 until arr.length()).map { j -> arr.getInt(j) }
+            }
+            items.add(ExpiryItem(
+                name = name,
+                year = dateObj?.getInt("year") ?: 0,
+                month = dateObj?.getInt("month") ?: 0,
+                day = dateObj?.getInt("day") ?: 0,
+                obb = obb,
+                dateBbox = dateBbox
+            ))
         }
         return items
     }

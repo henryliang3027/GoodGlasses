@@ -3,6 +3,7 @@ package com.example.goodglasses.ui.tab
 import android.graphics.SurfaceTexture
 import android.view.Surface
 import android.view.TextureView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -174,6 +175,46 @@ fun CameraTab(
                     contentDescription = null
                 )
             }
+
+            if (fractionImgPreview == 1f && states.value.expiryItems.isNotEmpty()) {
+                val imgW = bmp!!.width.toFloat()
+                val imgH = bmp!!.height.toFloat()
+                val obbColors = listOf(
+                    Color(0xFF4ADE80), // 綠
+                    Color(0xFF60A5FA), // 藍
+                    Color(0xFFFB923C), // 橘
+                    Color(0xFFF472B6), // 粉
+                    Color(0xFFA78BFA), // 紫
+                    Color(0xFFFACC15), // 黃
+                )
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val scaleX = size.width / imgW
+                    val scaleY = size.height / imgH
+                    states.value.expiryItems.forEachIndexed { index, item ->
+                        val color = obbColors[index % obbColors.size]
+                        val pts = item.obb.map { Offset(it.x * scaleX, it.y * scaleY) }
+                        for (j in pts.indices) {
+                            drawLine(
+                                color = color,
+                                start = pts[j],
+                                end = pts[(j + 1) % pts.size],
+                                strokeWidth = 3.dp.toPx()
+                            )
+                        }
+                        item.dateBbox?.let { bbox ->
+                            drawRect(
+                                color = Color(0xFFFBBF24),
+                                topLeft = Offset(bbox[0] * scaleX, bbox[1] * scaleY),
+                                size = androidx.compose.ui.geometry.Size(
+                                    (bbox[2] - bbox[0]) * scaleX,
+                                    (bbox[3] - bbox[1]) * scaleY
+                                ),
+                                style = Stroke(width = 2.dp.toPx())
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(spacerHeight))
@@ -229,6 +270,17 @@ fun CameraTab(
                     }
                 }
                 states.value.expiryItems.isNotEmpty() -> {
+                    Text(
+                        text = "共 ${states.value.expiryItems.size} 項",
+                        color = AppColors.TextGray300,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        thickness = 0.5.dp,
+                        color = AppColors.BorderGray700_50
+                    )
                     states.value.expiryItems.forEachIndexed { index, item ->
                         Row(
                             modifier = Modifier
