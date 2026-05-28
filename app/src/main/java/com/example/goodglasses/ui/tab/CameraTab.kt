@@ -49,8 +49,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.goodglasses.ui.components.CustomText
-import com.example.goodglasses.ui.components.CustomHorizontalDivider
-import com.example.goodglasses.ui.components.CustomTitleWithIcon
 import com.example.goodglasses.ui.components.CustomButton
 import com.example.goodglasses.R.drawable
 import com.example.goodglasses.ui.theme.AppColors
@@ -76,26 +74,6 @@ fun CameraTab(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start
     ) {
-        //--------------------------------------------------
-//        CustomHorizontalDivider()
-        //--------------------------------------------------
-
-//        Spacer(modifier = Modifier.height(spacerHeight))
-        CustomTitleWithIcon(
-            drawable.camera_solid_full,
-            iconDes = "",
-            iconColor = AppColors.TextBlue400,
-            iconSize = 25,
-            titleText = " 辨識模式",
-            fontSize = 16,
-            fontWeight = FontWeight.Normal
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        ModeToggle(
-            selectedMode = states.value.analysisMode,
-            onModeSelected = { onEvent(CameraEvent.ModeChanged(it)) }
-        )
-        Spacer(modifier = Modifier.height(spacerHeight))
 //        CustomTitleWithIcon(
 //            drawable.camera_solid_full,
 //            iconDes = "",
@@ -143,15 +121,6 @@ fun CameraTab(
 
         //--------------------------------------------------
 
-        CustomTitleWithIcon(
-            drawable.desktop_solid_full,
-            iconDes = "",
-            iconColor = AppColors.TextBlue400,
-            iconSize = 25,
-            titleText = "Media Preview",
-            fontSize = 16,
-            fontWeight = FontWeight.Normal
-        )
         Spacer(modifier = Modifier.height(10.dp))
 
         val configuration = LocalConfiguration.current
@@ -179,7 +148,7 @@ fun CameraTab(
 
             if (fractionImgPreview == 0f && fractionVideoPreview == 0f) {
                 CustomText(
-                    "Live Camera Feed / Last Capture Preview",
+                    "照片顯示區",
                     color = AppColors.TextGray500
                 )
             }
@@ -208,16 +177,8 @@ fun CameraTab(
         }
 
         Spacer(modifier = Modifier.height(spacerHeight))
-        CustomTitleWithIcon(
-            drawable.desktop_solid_full,
-            iconDes = "",
-            iconColor = AppColors.TextBlue400,
-            iconSize = 25,
-            titleText = "AI Analysis",
-            fontSize = 16,
-            fontWeight = FontWeight.Normal
-        )
-        Spacer(modifier = Modifier.height(10.dp))
+        HorizontalDivider(thickness = 0.5.dp, color = AppColors.BorderGray700_50)
+        Spacer(modifier = Modifier.height(spacerHeight))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -283,7 +244,7 @@ fun CameraTab(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
+                                text = if (item.year == 0) "未提供" else "${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
                                 color = AppColors.TextBlue400,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -345,10 +306,11 @@ fun Modifier.dashedBorder(
 @Composable
 fun ModeToggle(
     selectedMode: AnalysisMode,
-    onModeSelected: (AnalysisMode) -> Unit
+    onModeSelected: (AnalysisMode) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(25.dp))
             .background(AppColors.BgDarkSecondary)

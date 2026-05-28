@@ -19,11 +19,13 @@ import kotlinx.coroutines.launch
 enum class AnalysisMode { INVENTORY, EXPIRY }
 
 data class CameraUiState(
+    val isConnected: Boolean = false,
+    val textConnectButton: String = "Connect",
     val isVideoRecording: Boolean = false,
     val isImageCapturing: Boolean = false,
     val previewRatio: Float = 1.8f,
     val isAnalyzing: Boolean = false,
-    val analysisMode: AnalysisMode = AnalysisMode.INVENTORY,
+    val analysisMode: AnalysisMode = AnalysisMode.EXPIRY,
     val inventoryItems: List<InventoryItem> = emptyList(),
     val expiryItems: List<ExpiryItem> = emptyList(),
     val analysisError: String? = null,
@@ -31,6 +33,7 @@ data class CameraUiState(
 )
 
 sealed interface CameraEvent {
+    data object ConnectClicked : CameraEvent
     data object TakePhotoClicked : CameraEvent
     data object StartRecordingClicked : CameraEvent
     data object StopRecordingClicked : CameraEvent
@@ -49,6 +52,19 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
     val latestImageReceived: StateFlow<Bitmap?> = _latestImageReceived
 
     init {
+        manager.setSimulator(false)
+        manager.connect()
+
+        viewModelScope.launch {
+            manager.connection.collect { connected ->
+                _uiState.update {
+                    it.copy(
+                        isConnected = connected,
+                        textConnectButton = if (!connected) "Connect" else "Disconnect"
+                    )
+                }
+            }
+        }
         viewModelScope.launch {
             manager.imageReceived.collect { bmp ->
                 _latestImageReceived.value = bmp
@@ -141,6 +157,12 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
 
     fun onEvent(event: CameraEvent) {
         when (event) {
+            CameraEvent.ConnectClicked -> {
+                if (!uiState.value.isConnected)
+                    manager.connect()
+                else
+                    manager.disconnect()
+            }
             CameraEvent.TakePhotoClicked -> {
                 clearPreview()
                 manager.captureImage()

@@ -81,13 +81,15 @@ class InventoryRepository {
         for (i in 0 until dataArray.length()) {
             val obj = dataArray.getJSONObject(i)
             val name = obj.getString("name")
-            val dateObj = obj.getJSONObject("date")
-            items.add(ExpiryItem(
-                name = name,
-                year = dateObj.getInt("year"),
-                month = dateObj.getInt("month"),
-                day = dateObj.getInt("day")
-            ))
+            val dateObj = obj.optJSONObject("date")
+            items.add(
+                if (dateObj != null) ExpiryItem(
+                    name = name,
+                    year = dateObj.getInt("year"),
+                    month = dateObj.getInt("month"),
+                    day = dateObj.getInt("day")
+                ) else ExpiryItem(name = name, year = 0, month = 0, day = 0)
+            )
         }
         return items
     }

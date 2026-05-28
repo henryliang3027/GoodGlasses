@@ -31,7 +31,6 @@ import com.htc.viveglass.sdk.StreamingEvent.*
 import com.htc.viveglass.sdk.client.StreamingBufferCallback
 import com.htc.viveglass.sdk.client.StreamingEventCallback
 import com.htc.viveglass.sdk.client.ViveGlassClientCallback
-import com.example.goodglasses.ui.tab.AppDestination
 import com.example.goodglasses.util.Logger
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -288,7 +287,8 @@ class ViveGlassKitManager(
 
     private fun onDisconnected() {
         _connection.value = false
-        releasePreviousPage(AppDestination.Camera.route)
+        if (_isVideoStreaming.value)
+            stopVideoStreaming()
     }
 
     override fun isConnected(): Boolean {
@@ -334,19 +334,6 @@ class ViveGlassKitManager(
     }
 
     // =======================
-    // Release previous resource
-    // =======================
-
-    fun releasePreviousPage(routeToRelease: String) {
-        when (routeToRelease) {
-            AppDestination.Glasses.route -> {}
-            AppDestination.Camera.route -> {
-                if (_isVideoStreaming.value)
-                    stopVideoStreaming()
-            }
-        }
-    }
-
     // =======================
     // HEIC to bitmap
     // =======================
