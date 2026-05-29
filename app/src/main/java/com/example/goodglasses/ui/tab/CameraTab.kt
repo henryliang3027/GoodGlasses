@@ -57,7 +57,8 @@ import com.example.goodglasses.ui.theme.AppColors
 @Composable
 fun CameraTab(
     onEvent: (CameraEvent) -> Unit,
-    vm: CameraTabModel
+    vm: CameraTabModel,
+    onOpenPhoneCamera: () -> Unit = {}
 ) {
     val states = vm.uiState.collectAsStateWithLifecycle()
     val bmp by vm.latestImageReceived.collectAsState()
@@ -188,11 +189,31 @@ fun CameraTab(
                     Color(0xFFFACC15), // 黃
                 )
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val scaleX = size.width / imgW
-                    val scaleY = size.height / imgH
+                    // ContentScale.Fit centers the image — compute actual displayed area
+                    val imgAspect = imgW / imgH
+                    val canvasAspect = size.width / size.height
+                    val dispW: Float
+                    val dispH: Float
+                    val offsetX: Float
+                    val offsetY: Float
+                    if (imgAspect > canvasAspect) {
+                        // letterboxed: image wider than canvas → bars top/bottom
+                        dispW = size.width
+                        dispH = size.width / imgAspect
+                        offsetX = 0f
+                        offsetY = (size.height - dispH) / 2f
+                    } else {
+                        // pillarboxed: image taller than canvas → bars left/right
+                        dispH = size.height
+                        dispW = size.height * imgAspect
+                        offsetX = (size.width - dispW) / 2f
+                        offsetY = 0f
+                    }
+                    val scaleX = dispW / imgW
+                    val scaleY = dispH / imgH
                     states.value.expiryItems.forEachIndexed { index, item ->
                         val color = obbColors[index % obbColors.size]
-                        val pts = item.obb.map { Offset(it.x * scaleX, it.y * scaleY) }
+                        val pts = item.obb.map { Offset(it.x * scaleX + offsetX, it.y * scaleY + offsetY) }
                         for (j in pts.indices) {
                             drawLine(
                                 color = color,
@@ -204,7 +225,7 @@ fun CameraTab(
                         item.dateBbox?.let { bbox ->
                             drawRect(
                                 color = Color(0xFFFBBF24),
-                                topLeft = Offset(bbox[0] * scaleX, bbox[1] * scaleY),
+                                topLeft = Offset(bbox[0] * scaleX + offsetX, bbox[1] * scaleY + offsetY),
                                 size = androidx.compose.ui.geometry.Size(
                                     (bbox[2] - bbox[0]) * scaleX,
                                     (bbox[3] - bbox[1]) * scaleY
@@ -324,6 +345,15 @@ fun CameraTab(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(spacerHeight))
+        CustomButton(
+            "手機拍照",
+            color = AppColors.BgIndigo600,
+            height = 50,
+            onClick = onOpenPhoneCamera
+        )
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 

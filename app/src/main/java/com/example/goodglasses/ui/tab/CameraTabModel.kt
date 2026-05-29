@@ -23,7 +23,7 @@ data class CameraUiState(
     val textConnectButton: String = "Connect",
     val isVideoRecording: Boolean = false,
     val isImageCapturing: Boolean = false,
-    val previewRatio: Float = 1.8f,
+    val previewRatio: Float = 0.75f,
     val isAnalyzing: Boolean = false,
     val analysisMode: AnalysisMode = AnalysisMode.EXPIRY,
     val inventoryItems: List<InventoryItem> = emptyList(),
@@ -137,11 +137,9 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                 onSuccess = { items ->
                     _uiState.update { it.copy(isAnalyzing = false, expiryItems = items, hasAnalyzed = true) }
                     if (items.isNotEmpty()) {
-                        val text = if (items.size <= 3) {
-                            items.joinToString("，") { "${it.name} 效期 ${it.year}年${it.month}月${it.day}日" }
-                        } else {
+                        val text =
                             "偵測到 ${items.size} 項商品效期，請參考手機上的清單"
-                        }
+                        
                         log.d(TAG, "speakText: $text")
                         manager.speakText(text)
                     } else {
@@ -185,6 +183,15 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                     )
                 }
             }
+        }
+    }
+
+    fun onPhoneCapture(bitmap: Bitmap) {
+        _latestImageReceived.value = bitmap
+        _uiState.update { it.copy(inventoryItems = emptyList(), expiryItems = emptyList(), analysisError = null, hasAnalyzed = false) }
+        when (uiState.value.analysisMode) {
+            AnalysisMode.INVENTORY -> analyzeInventory(bitmap)
+            AnalysisMode.EXPIRY -> analyzeExpiry(bitmap)
         }
     }
 

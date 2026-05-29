@@ -38,6 +38,7 @@ android {
 }
 
 val nav_version = "2.9.5"
+val camerax_version = "1.4.2"
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -59,6 +60,9 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("androidx.camera:camera-camera2:$camerax_version")
+    implementation("androidx.camera:camera-lifecycle:$camerax_version")
+    implementation("androidx.camera:camera-view:$camerax_version")
     implementation("com.htc.viveglass.sdk:viveglass_client:0.0.28-SNAPSHOT")
     implementation(files("libs/ViveGlassSimulator-release.aar"))
     implementation(libs.androidx.constraintlayout)

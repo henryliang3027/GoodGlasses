@@ -85,7 +85,7 @@ class ViveGlassKitManager(
     private val _isImageCapturing = MutableStateFlow(false)
     override val isImageCapturing: StateFlow<Boolean> = _isImageCapturing.asStateFlow()
 
-    private val _previewRatio = MutableStateFlow(1.8f)
+    private val _previewRatio = MutableStateFlow(0.75f)
     override val previewRatio: StateFlow<Float> = _previewRatio.asStateFlow()
 
     private val _imageReceived = MutableSharedFlow<Bitmap>(
