@@ -9,6 +9,7 @@ import android.media.ExifInterface
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -69,7 +70,11 @@ fun PhoneCameraScreen(
         if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    val imageCapture = remember { ImageCapture.Builder().build() }
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setTargetAspectRatio(AspectRatio.RATIO_16_9)
+            .build()
+    }
     val providerRef = remember { arrayOfNulls<ProcessCameraProvider>(1) }
 
     DisposableEffect(Unit) {
@@ -84,12 +89,16 @@ fun PhoneCameraScreen(
         if (hasCameraPermission) {
             AndroidView(
                 factory = { ctx ->
-                    val previewView = PreviewView(ctx)
+                    val previewView = PreviewView(ctx).apply {
+                        scaleType = PreviewView.ScaleType.FIT_CENTER
+                    }
                     ProcessCameraProvider.getInstance(ctx).also { future ->
                         future.addListener({
                             val provider = future.get()
                             providerRef[0] = provider
-                            val preview = Preview.Builder().build()
+                            val preview = Preview.Builder()
+                                .setTargetAspectRatio(AspectRatio.RATIO_16_9)
+                                .build()
                                 .also { it.setSurfaceProvider(previewView.surfaceProvider) }
                             try {
                                 provider.unbindAll()
