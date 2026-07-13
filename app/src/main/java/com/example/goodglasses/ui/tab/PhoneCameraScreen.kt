@@ -77,6 +77,11 @@ fun PhoneCameraScreen(
     }
     val providerRef = remember { arrayOfNulls<ProcessCameraProvider>(1) }
 
+    // Guards against a rapid double-tap on the shutter triggering two captures
+    // (and therefore two downstream detection API calls) for what the user
+    // intended as a single photo.
+    var isCapturing by remember { mutableStateOf(false) }
+
     DisposableEffect(Unit) {
         onDispose { providerRef[0]?.unbindAll() }
     }
@@ -138,8 +143,9 @@ fun PhoneCameraScreen(
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 48.dp, end = 24.dp)
                 .size(72.dp)
-                .background(Color.White.copy(alpha = 0.25f), CircleShape)
-                .clickable {
+                .background(Color.White.copy(alpha = if (isCapturing) 0.1f else 0.25f), CircleShape)
+                .clickable(enabled = !isCapturing) {
+                    isCapturing = true
                     val outputStream = ByteArrayOutputStream()
                     val options = ImageCapture.OutputFileOptions.Builder(outputStream).build()
                     imageCapture.takePicture(
@@ -163,10 +169,14 @@ fun PhoneCameraScreen(
                                         Matrix().apply { postRotate(degrees) }, true
                                     )
                                 }
+                                // isCapturing is intentionally left true here: the screen is
+                                // dismissed right after onPhotoCaptured is invoked (see
+                                // Screens.kt), so there is no further tap to guard against.
                                 onPhotoCaptured(bitmap)
                             }
                             override fun onError(exception: ImageCaptureException) {
                                 Log.e("PhoneCameraScreen", "Capture failed: ${exception.message}", exception)
+                                isCapturing = false
                             }
                         }
                     )

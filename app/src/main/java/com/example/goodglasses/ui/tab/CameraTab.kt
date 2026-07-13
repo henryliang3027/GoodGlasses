@@ -3,7 +3,6 @@ package com.example.goodglasses.ui.tab
 import android.graphics.SurfaceTexture
 import android.view.Surface
 import android.view.TextureView
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -177,65 +176,6 @@ fun CameraTab(
                 )
             }
 
-            if (fractionImgPreview == 1f && states.value.expiryItems.isNotEmpty()) {
-                val imgW = bmp!!.width.toFloat()
-                val imgH = bmp!!.height.toFloat()
-                val obbColors = listOf(
-                    Color(0xFF4ADE80), // 綠
-                    Color(0xFF60A5FA), // 藍
-                    Color(0xFFFB923C), // 橘
-                    Color(0xFFF472B6), // 粉
-                    Color(0xFFA78BFA), // 紫
-                    Color(0xFFFACC15), // 黃
-                )
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    // ContentScale.Fit centers the image — compute actual displayed area
-                    val imgAspect = imgW / imgH
-                    val canvasAspect = size.width / size.height
-                    val dispW: Float
-                    val dispH: Float
-                    val offsetX: Float
-                    val offsetY: Float
-                    if (imgAspect > canvasAspect) {
-                        // letterboxed: image wider than canvas → bars top/bottom
-                        dispW = size.width
-                        dispH = size.width / imgAspect
-                        offsetX = 0f
-                        offsetY = (size.height - dispH) / 2f
-                    } else {
-                        // pillarboxed: image taller than canvas → bars left/right
-                        dispH = size.height
-                        dispW = size.height * imgAspect
-                        offsetX = (size.width - dispW) / 2f
-                        offsetY = 0f
-                    }
-                    val scaleX = dispW / imgW
-                    val scaleY = dispH / imgH
-                    states.value.expiryItems.forEachIndexed { index, item ->
-                        val color = obbColors[index % obbColors.size]
-                        val pts = item.obb.map { Offset(it.x * scaleX + offsetX, it.y * scaleY + offsetY) }
-                        for (j in pts.indices) {
-                            drawLine(
-                                color = color,
-                                start = pts[j],
-                                end = pts[(j + 1) % pts.size],
-                                strokeWidth = 3.dp.toPx()
-                            )
-                        }
-                        item.dateBbox?.let { bbox ->
-                            drawRect(
-                                color = Color(0xFFFBBF24),
-                                topLeft = Offset(bbox[0] * scaleX + offsetX, bbox[1] * scaleY + offsetY),
-                                size = androidx.compose.ui.geometry.Size(
-                                    (bbox[2] - bbox[0]) * scaleX,
-                                    (bbox[3] - bbox[1]) * scaleY
-                                ),
-                                style = Stroke(width = 2.dp.toPx())
-                            )
-                        }
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(spacerHeight))
@@ -303,25 +243,41 @@ fun CameraTab(
                         color = AppColors.BorderGray700_50
                     )
                     states.value.expiryItems.forEachIndexed { index, item ->
-                        Row(
+                        val productLabel = item.product?.let { p ->
+                            listOfNotNull(p.brand, p.name).joinToString(" ").ifBlank { null }
+                        } ?: "未知商品"
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = if (index == 0) 0.dp else 6.dp, bottom = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(top = if (index == 0) 0.dp else 6.dp, bottom = 2.dp)
                         ) {
-                            Text(
-                                text = item.name,
-                                color = AppColors.TextWhite,
-                                fontSize = 14.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = if (item.year == 0) "未提供" else "${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
-                                color = AppColors.TextBlue400,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = productLabel,
+                                    color = AppColors.TextWhite,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = "效期 ${item.expiryDate?.formatted() ?: "未提供"}",
+                                    color = AppColors.TextBlue400,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            item.manufactureDate?.let { md ->
+                                Text(
+                                    text = "製造日期 ${md.formatted()}",
+                                    color = AppColors.TextGray400,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
                         }
                         if (index < states.value.expiryItems.lastIndex) {
                             HorizontalDivider(
