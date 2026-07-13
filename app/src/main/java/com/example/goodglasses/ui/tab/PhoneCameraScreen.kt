@@ -20,7 +20,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -123,7 +125,8 @@ fun PhoneCameraScreen(
             onClick = onDismiss,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 48.dp, start = 16.dp)
+                .statusBarsPadding()
+                .padding(top = 8.dp, start = 16.dp)
         ) {
             Icon(
                 imageVector = Icons.Filled.ArrowBack,
@@ -136,7 +139,8 @@ fun PhoneCameraScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 48.dp, end = 24.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 24.dp, end = 24.dp)
                 .size(72.dp)
                 .background(Color.White.copy(alpha = 0.25f), CircleShape)
                 .clickable {
