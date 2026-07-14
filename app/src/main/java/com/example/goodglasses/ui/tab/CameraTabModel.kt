@@ -195,6 +195,10 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
         }
     }
 
+    fun setExpiryServerAddress(ip: String, port: String) {
+        repository.setExpiryServer(ip, port)
+    }
+
     fun clearPreview() {
         _latestImageReceived.value = null
         _uiState.update { it.copy(inventoryItems = emptyList(), expiryItems = emptyList(), analysisError = null) }
