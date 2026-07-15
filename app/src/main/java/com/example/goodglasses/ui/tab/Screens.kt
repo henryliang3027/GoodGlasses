@@ -71,8 +71,9 @@ fun CameraScreen(clientManager: ViveGlassKitManager) {
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    var ipText by remember { mutableStateOf("192.168.50.190") }
-                    var portText by remember { mutableStateOf("8881") }
+                    val appliedServer by vm.appliedExpiryServer.collectAsStateWithLifecycle()
+                    var ipText by remember { mutableStateOf(appliedServer.substringBefore(":")) }
+                    var portText by remember { mutableStateOf(appliedServer.substringAfter(":")) }
 
                     Row(modifier = Modifier
                         .fillMaxWidth()
@@ -103,6 +104,13 @@ fun CameraScreen(clientManager: ViveGlassKitManager) {
                     ) {
                         Text("確定")
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "目前套用: $appliedServer",
+                        color = AppColors.TextGray300,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
                 }
             }
         ) {

@@ -37,12 +37,17 @@ class InventoryRepository {
         .build()
     private val url = "http://192.168.0.102:8888/check_out_of_stock"
 //    private val expiryUrl = "https://gillian-unhesitative-jestine.ngrok-free.dev/api/v1/detect"
-    private var expiryUrl = "http://192.168.0.186:8881/api/v1/detect"
+    private var expiryHost = "192.168.0.186"
+    private var expiryPort = "8881"
+    private val expiryUrl: String
+        get() = "http://$expiryHost:$expiryPort/api/v1/detect"
 
     fun setExpiryServer(ip: String, port: String) {
-        expiryUrl = "http://$ip:$port/api/v1/detect"
-
+        expiryHost = ip
+        expiryPort = port
     }
+
+    fun getExpiryServerAddress(): String = "$expiryHost:$expiryPort"
 
     suspend fun analyzeImage(bitmap: Bitmap): Result<List<InventoryItem>> = withContext(Dispatchers.IO) {
         try {

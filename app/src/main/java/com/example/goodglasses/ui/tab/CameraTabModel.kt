@@ -51,6 +51,9 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
     private val _latestImageReceived = MutableStateFlow<Bitmap?>(null)
     val latestImageReceived: StateFlow<Bitmap?> = _latestImageReceived
 
+    private val _appliedExpiryServer = MutableStateFlow(repository.getExpiryServerAddress())
+    val appliedExpiryServer: StateFlow<String> = _appliedExpiryServer
+
     init {
         manager.setSimulator(false)
         manager.connect()
@@ -197,6 +200,7 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
 
     fun setExpiryServerAddress(ip: String, port: String) {
         repository.setExpiryServer(ip, port)
+        _appliedExpiryServer.value = repository.getExpiryServerAddress()
     }
 
     fun clearPreview() {
