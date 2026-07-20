@@ -66,6 +66,8 @@ dependencies {
     implementation("androidx.camera:camera-view:$camerax_version")
     implementation("com.htc.viveglass.sdk:viveglass_client:0.0.28-SNAPSHOT")
     implementation(files("libs/ViveGlassSimulator-release.aar"))
+    implementation("com.meta.wearable:mwdat-core:0.7.0")
+    implementation("com.meta.wearable:mwdat-camera:0.7.0")
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.appcompat)

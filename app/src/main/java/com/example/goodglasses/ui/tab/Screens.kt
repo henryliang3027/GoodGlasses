@@ -28,14 +28,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.goodglasses.MetaGlassKitManager
 import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.ui.components.ViveHeaderSurface
 import com.example.goodglasses.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
 @Composable
-fun CameraScreen(clientManager: ViveGlassKitManager) {
-    val vm = remember(clientManager) { CameraTabModel(clientManager) }
+fun CameraScreen(clientManager: ViveGlassKitManager, metaGlassKitManager: MetaGlassKitManager) {
+    val vm = remember(clientManager, metaGlassKitManager) { CameraTabModel(clientManager, metaGlassKitManager) }
     val states by vm.uiState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -118,7 +119,9 @@ fun CameraScreen(clientManager: ViveGlassKitManager) {
                 isConnected = states.isConnected,
                 connectButtonText = states.textConnectButton,
                 onConnectClick = { vm.onEvent(CameraEvent.ConnectClicked) },
-                onMenuClick = { scope.launch { drawerState.open() } }
+                onMenuClick = { scope.launch { drawerState.open() } },
+                selectedDevice = states.deviceSource,
+                onDeviceSourceChange = { vm.onEvent(CameraEvent.DeviceSourceChanged(it)) }
             ) {
                 CameraTab(vm::onEvent, vm, onOpenPhoneCamera = { showPhoneCamera = true })
             }

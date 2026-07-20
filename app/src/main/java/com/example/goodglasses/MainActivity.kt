@@ -5,11 +5,13 @@ import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.htc.viveglass.sdk.ViveGlass
 import com.htc.viveglass.sdk.ViveGlassKit
 import com.htc.viveglass.sdk.simulator.ViveGlassSimulator
@@ -18,12 +20,48 @@ import com.example.goodglasses.ui.theme.AppColors
 import com.example.goodglasses.util.DebugLogger
 import com.example.goodglasses.util.Logger
 import com.example.goodglasses.util.NoOpLogger
+import com.meta.wearable.dat.core.Wearables
+import com.meta.wearable.dat.core.types.Permission
+import com.meta.wearable.dat.core.types.PermissionStatus
+import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class MainActivity : AppCompatActivity() {
 
     val enableDebugLog = true
 
     var viveClientManager: ViveGlassKitManager? = null
+    var metaGlassKitManager: MetaGlassKitManager? = null
+
+    private val metaAndroidPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            if (results.values.all { it }) {
+                metaGlassKitManager?.onPermissionsGranted()
+            } else {
+                Logger.instance.e(META_TAG, "Meta glasses Android permissions denied")
+            }
+        }
+
+    private var wearablesPermissionContinuation: CancellableContinuation<PermissionStatus>? = null
+    private val wearablesPermissionMutex = Mutex()
+    private val wearablesPermissionLauncher =
+        registerForActivityResult(Wearables.RequestPermissionContract()) { result ->
+            val status = result.getOrDefault(PermissionStatus.Denied)
+            wearablesPermissionContinuation?.resume(status)
+            wearablesPermissionContinuation = null
+        }
+
+    private suspend fun requestWearablesPermission(permission: Permission): PermissionStatus =
+        wearablesPermissionMutex.withLock {
+            suspendCancellableCoroutine { continuation ->
+                wearablesPermissionContinuation = continuation
+                continuation.invokeOnCancellation { wearablesPermissionContinuation = null }
+                wearablesPermissionLauncher.launch(permission)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,8 +80,15 @@ class MainActivity : AppCompatActivity() {
             val simulator = ViveGlassSimulator.instance()
 
             viveClientManager = ViveGlassKitManager(glass, kit, simulator, appContext, audioManager)
+            metaGlassKitManager = MetaGlassKitManager(
+                activity = this,
+                scope = lifecycleScope,
+                requestAndroidPermissions = { metaAndroidPermissionLauncher.launch(it) },
+                requestWearablesPermission = ::requestWearablesPermission,
+            )
             val manager = viveClientManager ?: return@setContent
-            SampleApp(manager)
+            val metaManager = metaGlassKitManager ?: return@setContent
+            SampleApp(manager, metaManager)
         }
     }
 
@@ -54,15 +99,16 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         viveClientManager?.cleanup()
+        metaGlassKitManager?.cleanup()
     }
 }
 
 @Composable
-fun SampleApp(viveClientManager: ViveGlassKitManager) {
+fun SampleApp(viveClientManager: ViveGlassKitManager, metaGlassKitManager: MetaGlassKitManager) {
     Surface(
         color = AppColors.BgDarkPrimary,
         modifier = Modifier.fillMaxSize()
     ) {
-        CameraScreen(viveClientManager)
+        CameraScreen(viveClientManager, metaGlassKitManager)
     }
 }
