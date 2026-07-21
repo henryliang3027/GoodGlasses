@@ -29,8 +29,19 @@ class InventoryRepository {
     private val client = OkHttpClient.Builder()
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
-    private val url = "http://192.168.0.102:8888/check_out_of_stock"
-    private val expiryUrl = "http://192.168.0.102:8888/box_date_detection"
+    private var serverHost = "192.168.0.102"
+    private var serverPort = "8888"
+    private val url: String
+        get() = "http://$serverHost:$serverPort/check_out_of_stock"
+    private val expiryUrl: String
+        get() = "http://$serverHost:$serverPort/box_date_detection"
+
+    fun setServerAddress(ip: String, port: String) {
+        serverHost = ip
+        serverPort = port
+    }
+
+    fun getServerAddress(): String = "$serverHost:$serverPort"
 
     suspend fun analyzeImage(bitmap: Bitmap): Result<List<InventoryItem>> = withContext(Dispatchers.IO) {
         try {

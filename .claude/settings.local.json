@@ -30,7 +30,10 @@
       "Bash(unzip -o classes.jar -d .)",
       "Bash(grep -v \"\\\\$\")",
       "Bash(grep -ao '[a-zA-Z][a-zA-Z0-9_]\\\\{3,\\\\}' /tmp/viveglass_sdk/com/htc/viveglass/sdk/IViveGlassClient.class)",
-      "Bash(xxd '/tmp/viveglass_sdk/com/htc/viveglass/sdk/IViveGlassClient$Stub$Proxy.class')"
+      "Bash(xxd '/tmp/viveglass_sdk/com/htc/viveglass/sdk/IViveGlassClient$Stub$Proxy.class')",
+      "Bash(sed 's/=.*/=<hidden>/' \"C:\\\\Users\\\\USER\\\\Documents\\\\git_projects\\\\20260720\\\\GoodGlasses\\\\local.properties\")",
+      "Bash(sed 's/=.*/=<hidden>/' \"C:\\\\Users\\\\USER\\\\Documents\\\\git_projects\\\\GoodGlasses\\\\local.properties\")",
+      "Bash(./gradlew.bat :app:compileDebugKotlin --console=plain)"
     ]
   }
 }

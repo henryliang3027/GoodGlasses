@@ -1,5 +1,7 @@
 package com.example.goodglasses.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,14 +24,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.goodglasses.R
 import com.example.goodglasses.ui.theme.AppColors
+
+enum class DeviceSource {
+    HTC, META
+}
 
 @Preview
 @Composable
@@ -39,6 +52,8 @@ fun ViveHeaderSurface(
     connectButtonText: String? = null,
     onConnectClick: (() -> Unit)? = null,
     onMenuClick: (() -> Unit)? = null,
+    selectedDevice: DeviceSource = DeviceSource.HTC,
+    onDeviceSourceChange: ((DeviceSource) -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit = {},
 ) {
     CustomSurface() {
@@ -46,7 +61,14 @@ fun ViveHeaderSurface(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Header(isConnected, connectButtonText, onConnectClick, onMenuClick)
+            Header(
+                isConnected,
+                connectButtonText,
+                onConnectClick,
+                onMenuClick,
+                selectedDevice,
+                onDeviceSourceChange
+            )
             Spacer(modifier = Modifier.height(10.dp))
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -87,7 +109,11 @@ private fun Header(
     connectButtonText: String? = null,
     onConnectClick: (() -> Unit)? = null,
     onMenuClick: (() -> Unit)? = null,
+    selectedDevice: DeviceSource = DeviceSource.HTC,
+    onDeviceSourceChange: ((DeviceSource) -> Unit)? = null,
 ) {
+    var currentDevice by rememberSaveable { mutableStateOf(selectedDevice) }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -105,6 +131,14 @@ private fun Header(
             Spacer(modifier = Modifier.width(8.dp))
         }
         Spacer(modifier = Modifier.weight(1f))
+        DeviceSourceToggle(
+            selected = currentDevice,
+            onSelectedChange = {
+                currentDevice = it
+                onDeviceSourceChange?.invoke(it)
+            }
+        )
+        Spacer(modifier = Modifier.width(10.dp))
         if (onConnectClick != null) {
             IconButton(onClick = onConnectClick, modifier = Modifier.size(36.dp)) {
                 Icon(
@@ -138,4 +172,37 @@ private fun Header(
         thickness = 1.dp, color = AppColors.BorderGray700_50,
         modifier = Modifier.padding(top = 0.dp, start = 0.dp, end = 0.dp, bottom = 10.dp)
     )
+}
+
+@Composable
+private fun DeviceSourceToggle(
+    selected: DeviceSource,
+    onSelectedChange: (DeviceSource) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .height(26.dp)
+            .background(AppColors.BgGray800, RoundedCornerShape(13.dp))
+            .padding(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DeviceSource.entries.forEach { source ->
+            val isSelected = source == selected
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (isSelected) AppColors.BgBlue600 else Color.Transparent)
+                    .clickable(enabled = !isSelected) { onSelectedChange(source) }
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = source.name,
+                    color = if (isSelected) AppColors.TextWhite else AppColors.TextGray400,
+                    fontSize = 11.sp,
+                )
+            }
+        }
+    }
 }

@@ -51,6 +51,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.goodglasses.ui.components.CustomText
 import com.example.goodglasses.ui.components.CustomButton
+import com.example.goodglasses.ui.components.DeviceSource
 import com.example.goodglasses.R.drawable
 import com.example.goodglasses.ui.theme.AppColors
 
@@ -124,6 +125,26 @@ fun CameraTab(
         //--------------------------------------------------
 
         Spacer(modifier = Modifier.height(10.dp))
+
+        if (states.value.deviceSource == DeviceSource.META && states.value.isPairing) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = AppColors.TextBlue400
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                CustomText(
+                    "等待眼鏡配對中...",
+                    color = AppColors.TextGray300
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        }
 
         val configuration = LocalConfiguration.current
         val screenWidthDp = configuration.screenWidthDp.dp - 50.dp // Column padding each side 25
@@ -353,6 +374,16 @@ fun CameraTab(
             height = 50,
             onClick = onOpenPhoneCamera
         )
+        if (states.value.deviceSource == DeviceSource.META && states.value.isConnected) {
+            Spacer(modifier = Modifier.height(12.dp))
+            CustomButton(
+                "META 拍照",
+                color = AppColors.BgIndigo600,
+                height = 50,
+                enable = !states.value.isImageCapturing,
+                onClick = { onEvent(CameraEvent.TakePhotoClicked) }
+            )
+        }
         Spacer(modifier = Modifier.height(20.dp))
     }
 }

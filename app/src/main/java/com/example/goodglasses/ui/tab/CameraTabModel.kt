@@ -5,11 +5,13 @@ import android.view.Surface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goodglasses.TAG
+import com.example.goodglasses.MetaGlassKitManager
 import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.util.Logger
 import com.example.goodglasses.data.ExpiryItem
 import com.example.goodglasses.data.InventoryItem
 import com.example.goodglasses.data.InventoryRepository
+import com.example.goodglasses.ui.components.DeviceSource
 import com.htc.viveglass.sdk.KeyEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +31,9 @@ data class CameraUiState(
     val inventoryItems: List<InventoryItem> = emptyList(),
     val expiryItems: List<ExpiryItem> = emptyList(),
     val analysisError: String? = null,
-    val hasAnalyzed: Boolean = false
+    val hasAnalyzed: Boolean = false,
+    val deviceSource: DeviceSource = DeviceSource.HTC,
+    val isPairing: Boolean = false
 )
 
 sealed interface CameraEvent {
@@ -38,9 +42,13 @@ sealed interface CameraEvent {
     data object StartRecordingClicked : CameraEvent
     data object StopRecordingClicked : CameraEvent
     data class ModeChanged(val mode: AnalysisMode) : CameraEvent
+    data class DeviceSourceChanged(val source: DeviceSource) : CameraEvent
 }
 
-class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
+class CameraTabModel(
+    viveGlassKitManager: ViveGlassKitManager,
+    private val metaGlassKitManager: MetaGlassKitManager,
+) : ViewModel() {
     private val log = Logger.instance
     private val manager: ViveGlassKitManager = viveGlassKitManager
     private val repository = InventoryRepository()
@@ -51,29 +59,49 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
     private val _latestImageReceived = MutableStateFlow<Bitmap?>(null)
     val latestImageReceived: StateFlow<Bitmap?> = _latestImageReceived
 
+    private val _appliedServerAddress = MutableStateFlow(repository.getServerAddress())
+    val appliedServerAddress: StateFlow<String> = _appliedServerAddress
+
     init {
         manager.setSimulator(false)
         manager.connect()
 
         viewModelScope.launch {
             manager.connection.collect { connected ->
-                _uiState.update {
-                    it.copy(
-                        isConnected = connected,
-                        textConnectButton = if (!connected) "Connect" else "Disconnect"
-                    )
+                if (_uiState.value.deviceSource == DeviceSource.HTC) {
+                    _uiState.update {
+                        it.copy(
+                            isConnected = connected,
+                            textConnectButton = if (!connected) "Connect" else "Disconnect"
+                        )
+                    }
                 }
             }
         }
         viewModelScope.launch {
-            manager.imageReceived.collect { bmp ->
-                _latestImageReceived.value = bmp
-                log.d(TAG, "imageReceived: width=${bmp.width}, height=${bmp.height}")
-                when (uiState.value.analysisMode) {
-                    AnalysisMode.INVENTORY -> analyzeInventory(bmp)
-                    AnalysisMode.EXPIRY -> analyzeExpiry(bmp)
+            metaGlassKitManager.connection.collect { connected ->
+                if (_uiState.value.deviceSource == DeviceSource.META) {
+                    _uiState.update {
+                        it.copy(
+                            isConnected = connected,
+                            textConnectButton = if (!connected) "Connect" else "Disconnect"
+                        )
+                    }
                 }
             }
+        }
+        viewModelScope.launch {
+            metaGlassKitManager.isPairing.collect { pairing ->
+                if (_uiState.value.deviceSource == DeviceSource.META) {
+                    _uiState.update { it.copy(isPairing = pairing) }
+                }
+            }
+        }
+        viewModelScope.launch {
+            manager.imageReceived.collect { bmp -> handleImageReceived(bmp) }
+        }
+        viewModelScope.launch {
+            metaGlassKitManager.imageReceived.collect { bmp -> handleImageReceived(bmp) }
         }
         viewModelScope.launch {
             manager.isVideoStreaming.collect { isStreaming ->
@@ -82,7 +110,16 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
         }
         viewModelScope.launch {
             manager.isImageCapturing.collect { isCapturing ->
-                _uiState.update { it.copy(isImageCapturing = isCapturing) }
+                if (_uiState.value.deviceSource == DeviceSource.HTC) {
+                    _uiState.update { it.copy(isImageCapturing = isCapturing) }
+                }
+            }
+        }
+        viewModelScope.launch {
+            metaGlassKitManager.isImageCapturing.collect { isCapturing ->
+                if (_uiState.value.deviceSource == DeviceSource.META) {
+                    _uiState.update { it.copy(isImageCapturing = isCapturing) }
+                }
             }
         }
         viewModelScope.launch {
@@ -97,6 +134,21 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                     manager.captureImage()
                 }
             }
+        }
+    }
+
+    private fun speak(text: String) {
+        if (uiState.value.deviceSource == DeviceSource.HTC) {
+            manager.speakText(text)
+        }
+    }
+
+    private fun handleImageReceived(bmp: Bitmap) {
+        _latestImageReceived.value = bmp
+        log.d(TAG, "imageReceived: width=${bmp.width}, height=${bmp.height}")
+        when (uiState.value.analysisMode) {
+            AnalysisMode.INVENTORY -> analyzeInventory(bmp)
+            AnalysisMode.EXPIRY -> analyzeExpiry(bmp)
         }
     }
 
@@ -118,9 +170,9 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                             "多項商品缺貨, 請參考手機上的清單"
                         }
                         log.d(TAG, "speakText: $text")
-                        manager.speakText(text)
+                        speak(text)
                     } else {
-                        manager.speakText("目前無缺貨商品")
+                        speak("目前無缺貨商品")
                     }
                 },
                 onFailure = { error ->
@@ -139,11 +191,11 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                     if (items.isNotEmpty()) {
                         val text =
                             "偵測到 ${items.size} 項商品效期，請參考手機上的清單"
-                        
+
                         log.d(TAG, "speakText: $text")
-                        manager.speakText(text)
+                        speak(text)
                     } else {
-                        manager.speakText("目前無效期資料")
+                        speak("目前無效期資料")
                     }
                 },
                 onFailure = { error ->
@@ -156,21 +208,30 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
     fun onEvent(event: CameraEvent) {
         when (event) {
             CameraEvent.ConnectClicked -> {
-                if (!uiState.value.isConnected)
-                    manager.connect()
-                else
-                    manager.disconnect()
+                when (uiState.value.deviceSource) {
+                    DeviceSource.HTC ->
+                        if (!uiState.value.isConnected) manager.connect() else manager.disconnect()
+                    DeviceSource.META ->
+                        if (!uiState.value.isConnected) metaGlassKitManager.connect() else metaGlassKitManager.disconnect()
+                }
             }
             CameraEvent.TakePhotoClicked -> {
                 clearPreview()
-                manager.captureImage()
+                when (uiState.value.deviceSource) {
+                    DeviceSource.HTC -> manager.captureImage()
+                    DeviceSource.META -> metaGlassKitManager.captureImage()
+                }
             }
             CameraEvent.StartRecordingClicked -> {
-                clearPreview()
-                manager.startVideoStreaming()
+                if (uiState.value.deviceSource == DeviceSource.HTC) {
+                    clearPreview()
+                    manager.startVideoStreaming()
+                }
             }
             CameraEvent.StopRecordingClicked -> {
-                manager.stopVideoStreaming()
+                if (uiState.value.deviceSource == DeviceSource.HTC) {
+                    manager.stopVideoStreaming()
+                }
             }
             is CameraEvent.ModeChanged -> {
                 _uiState.update {
@@ -180,6 +241,24 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
                         expiryItems = emptyList(),
                         analysisError = null,
                         hasAnalyzed = false
+                    )
+                }
+            }
+            is CameraEvent.DeviceSourceChanged -> {
+                val newSource = event.source
+                if (newSource == uiState.value.deviceSource) return
+
+                when (newSource) {
+                    DeviceSource.META -> manager.disconnect()
+                    DeviceSource.HTC -> metaGlassKitManager.disconnect()
+                }
+                _uiState.update {
+                    it.copy(
+                        deviceSource = newSource,
+                        isConnected = false,
+                        textConnectButton = "Connect",
+                        isImageCapturing = false,
+                        isPairing = false
                     )
                 }
             }
@@ -193,6 +272,11 @@ class CameraTabModel(viveGlassKitManager: ViveGlassKitManager) : ViewModel() {
             AnalysisMode.INVENTORY -> analyzeInventory(bitmap)
             AnalysisMode.EXPIRY -> analyzeExpiry(bitmap)
         }
+    }
+
+    fun setServerAddress(ip: String, port: String) {
+        repository.setServerAddress(ip, port)
+        _appliedServerAddress.value = repository.getServerAddress()
     }
 
     fun clearPreview() {
