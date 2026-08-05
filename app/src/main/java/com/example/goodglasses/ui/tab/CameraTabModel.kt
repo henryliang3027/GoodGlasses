@@ -6,11 +6,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goodglasses.TAG
 import com.example.goodglasses.MetaGlassKitManager
+import com.example.goodglasses.PhoneCameraManager
 import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.util.Logger
 import com.example.goodglasses.data.ExpiryItem
 import com.example.goodglasses.data.InventoryItem
 import com.example.goodglasses.data.InventoryRepository
+import com.example.goodglasses.data.isExpiryFailing
 import com.example.goodglasses.ui.components.DeviceSource
 import com.htc.viveglass.sdk.KeyEvent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +50,7 @@ sealed interface CameraEvent {
 class CameraTabModel(
     viveGlassKitManager: ViveGlassKitManager,
     private val metaGlassKitManager: MetaGlassKitManager,
+    private val phoneCameraManager: PhoneCameraManager,
 ) : ViewModel() {
     private val log = Logger.instance
     private val manager: ViveGlassKitManager = viveGlassKitManager
@@ -102,6 +105,9 @@ class CameraTabModel(
         }
         viewModelScope.launch {
             metaGlassKitManager.imageReceived.collect { bmp -> handleImageReceived(bmp) }
+        }
+        viewModelScope.launch {
+            phoneCameraManager.imageReceived.collect { bmp -> handleImageReceived(bmp) }
         }
         viewModelScope.launch {
             manager.isVideoStreaming.collect { isStreaming ->
@@ -189,8 +195,12 @@ class CameraTabModel(
                 onSuccess = { items ->
                     _uiState.update { it.copy(isAnalyzing = false, expiryItems = items, hasAnalyzed = true) }
                     if (items.isNotEmpty()) {
-                        val text =
-                            "偵測到 ${items.size} 項商品效期，請參考手機上的清單"
+                        val failingItems = items.filter { it.isExpiryFailing() }
+                        val text = if (failingItems.isNotEmpty()) {
+                            "偵測到未合格商品, ${failingItems.joinToString("、") { it.name }}"
+                        } else {
+                            "所有商品合格"
+                        }
 
                         log.d(TAG, "speakText: $text")
                         speak(text)

@@ -53,6 +53,7 @@ import com.example.goodglasses.ui.components.CustomText
 import com.example.goodglasses.ui.components.CustomButton
 import com.example.goodglasses.ui.components.DeviceSource
 import com.example.goodglasses.R.drawable
+import com.example.goodglasses.data.isExpiryFailing
 import com.example.goodglasses.ui.theme.AppColors
 
 @Composable
@@ -312,6 +313,29 @@ fun CameraTab(
                     }
                 }
                 states.value.expiryItems.isNotEmpty() -> {
+                    val failingItems = states.value.expiryItems.filter { it.isExpiryFailing() }
+                    if (failingItems.isNotEmpty()) {
+                        Text(
+                            text = "效期未合格 (${failingItems.size})",
+                            color = AppColors.TextRed400,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        failingItems.forEach { item ->
+                            Text(
+                                text = "• ${item.name} ${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
+                                color = AppColors.TextRed400,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(start = 8.dp, bottom = 2.dp)
+                            )
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(top = 6.dp, bottom = 10.dp),
+                            thickness = 0.5.dp,
+                            color = AppColors.BorderGray700_50
+                        )
+                    }
                     Text(
                         text = "共 ${states.value.expiryItems.size} 項",
                         color = AppColors.TextGray300,
@@ -339,7 +363,7 @@ fun CameraTab(
                             )
                             Text(
                                 text = if (item.year == 0) "未提供" else "${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
-                                color = AppColors.TextBlue400,
+                                color = if (item.isExpiryFailing()) AppColors.TextRed400 else AppColors.TextBlue400,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )

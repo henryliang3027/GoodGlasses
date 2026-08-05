@@ -1,5 +1,6 @@
 package com.example.goodglasses
 
+import android.Manifest
 import android.content.Context
 import android.media.AudioManager
 import android.os.Bundle
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     var viveClientManager: ViveGlassKitManager? = null
     var metaGlassKitManager: MetaGlassKitManager? = null
+    var phoneCameraManager: PhoneCameraManager? = null
 
     private val metaAndroidPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -45,6 +47,15 @@ class MainActivity : AppCompatActivity() {
                 metaGlassKitManager?.onPermissionsGranted()
             } else {
                 Logger.instance.e(META_TAG, "Meta glasses Android permissions denied")
+            }
+        }
+
+    private val phoneCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                phoneCameraManager?.onPermissionGranted()
+            } else {
+                Logger.instance.e(KEY_EVENT_TAG, "Phone camera permission denied")
             }
         }
 
@@ -89,9 +100,15 @@ class MainActivity : AppCompatActivity() {
                 requestAndroidPermissions = { metaAndroidPermissionLauncher.launch(it) },
                 requestWearablesPermission = ::requestWearablesPermission,
             )
+            phoneCameraManager = PhoneCameraManager(
+                activity = this,
+                scope = lifecycleScope,
+                requestCameraPermission = { phoneCameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+            )
             val manager = viveClientManager ?: return@setContent
             val metaManager = metaGlassKitManager ?: return@setContent
-            SampleApp(manager, metaManager)
+            val phoneManager = phoneCameraManager ?: return@setContent
+            SampleApp(manager, metaManager, phoneManager)
         }
     }
 
@@ -128,14 +145,18 @@ class MainActivity : AppCompatActivity() {
         when {
             viveClientManager?.isConnected() == true -> {
                 Logger.instance.d(KEY_EVENT_TAG, "HTC glasses connected, triggering captureImage()")
+
                 viveClientManager?.captureImage()
+//                phoneCameraManager?.captureImage()
+//                viveClientManager?.speakText("分析中")
             }
             metaGlassKitManager?.isConnected() == true -> {
                 Logger.instance.d(KEY_EVENT_TAG, "Meta glasses connected, triggering captureImage()")
                 metaGlassKitManager?.captureImage()
             }
             else -> {
-                Logger.instance.d(KEY_EVENT_TAG, "No source device connected, ignoring capture trigger")
+                Logger.instance.d(KEY_EVENT_TAG, "No source device connected, capturing with phone camera")
+                phoneCameraManager?.captureImage()
             }
         }
     }
@@ -148,15 +169,20 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         viveClientManager?.cleanup()
         metaGlassKitManager?.cleanup()
+        phoneCameraManager?.cleanup()
     }
 }
 
 @Composable
-fun SampleApp(viveClientManager: ViveGlassKitManager, metaGlassKitManager: MetaGlassKitManager) {
+fun SampleApp(
+    viveClientManager: ViveGlassKitManager,
+    metaGlassKitManager: MetaGlassKitManager,
+    phoneCameraManager: PhoneCameraManager,
+) {
     Surface(
         color = AppColors.BgDarkPrimary,
         modifier = Modifier.fillMaxSize()
     ) {
-        CameraScreen(viveClientManager, metaGlassKitManager)
+        CameraScreen(viveClientManager, metaGlassKitManager, phoneCameraManager)
     }
 }

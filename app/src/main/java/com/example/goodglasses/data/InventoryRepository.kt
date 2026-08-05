@@ -12,6 +12,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 data class InventoryItem(val position: String, val outOfStock: List<String>)
 data class ObbPoint(val x: Int, val y: Int)
@@ -23,6 +25,23 @@ data class ExpiryItem(
     val obb: List<ObbPoint>,
     val dateBbox: List<Int>?            // [x1, y1, x2, y2] 或 null
 )
+
+private const val EXPIRY_WARNING_MONTHS = 6L
+
+/** 保存期限日期，若未偵測到日期則回傳 null */
+fun ExpiryItem.expiryDate(): LocalDate? =
+    if (year == 0 || month == 0 || day == 0) null
+    else runCatching { LocalDate.of(year, month, day) }.getOrNull()
+
+/** 距離現在的剩餘天數，若未偵測到日期則回傳 null */
+fun ExpiryItem.remainingDays(): Long? =
+    expiryDate()?.let { ChronoUnit.DAYS.between(LocalDate.now(), it) }
+
+/** 保存期限距離現在不足 6 個月，視為效期未合格 */
+fun ExpiryItem.isExpiryFailing(): Boolean {
+    val date = expiryDate() ?: return false
+    return date.isBefore(LocalDate.now().plusMonths(EXPIRY_WARNING_MONTHS))
+}
 
 class InventoryRepository {
 

@@ -29,14 +29,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.goodglasses.MetaGlassKitManager
+import com.example.goodglasses.PhoneCameraManager
 import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.ui.components.ViveHeaderSurface
 import com.example.goodglasses.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
 @Composable
-fun CameraScreen(clientManager: ViveGlassKitManager, metaGlassKitManager: MetaGlassKitManager) {
-    val vm = remember(clientManager, metaGlassKitManager) { CameraTabModel(clientManager, metaGlassKitManager) }
+fun CameraScreen(
+    clientManager: ViveGlassKitManager,
+    metaGlassKitManager: MetaGlassKitManager,
+    phoneCameraManager: PhoneCameraManager,
+) {
+    val vm = remember(clientManager, metaGlassKitManager, phoneCameraManager) {
+        CameraTabModel(clientManager, metaGlassKitManager, phoneCameraManager)
+    }
     val states by vm.uiState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
