@@ -119,6 +119,46 @@ fun CameraScreen(
                         fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        "效期合格門檻",
+                        color = AppColors.TextGray300,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val appliedWarningMonths by vm.expiryWarningMonths.collectAsStateWithLifecycle()
+                    var warningMonthsText by remember { mutableStateOf(appliedWarningMonths.toString()) }
+
+                    OutlinedTextField(
+                        value = warningMonthsText,
+                        onValueChange = { warningMonthsText = it },
+                        label = { Text("效期合格門檻（月）") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { warningMonthsText.trim().toLongOrNull()?.let { vm.setExpiryWarningMonths(it) } },
+                        enabled = (warningMonthsText.trim().toLongOrNull() ?: 0) >= 1,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Text("確定")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "距到期日不足 $appliedWarningMonths 個月視為未合格",
+                        color = AppColors.TextGray300,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
                 }
             }
         ) {

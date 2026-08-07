@@ -43,7 +43,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -64,6 +66,7 @@ fun CameraTab(
 ) {
     val states = vm.uiState.collectAsStateWithLifecycle()
     val bmp by vm.latestImageReceived.collectAsState()
+    val expiryWarningMonths by vm.expiryWarningMonths.collectAsStateWithLifecycle()
 
     val spacerHeight = 30.dp
 
@@ -202,7 +205,7 @@ fun CameraTab(
             if (fractionImgPreview == 1f && states.value.expiryItems.isNotEmpty()) {
                 val imgW = bmp!!.width.toFloat()
                 val imgH = bmp!!.height.toFloat()
-                val obbColors = listOf(
+                val boxColors = listOf(
                     Color(0xFF4ADE80), // 綠
                     Color(0xFF60A5FA), // 藍
                     Color(0xFFFB923C), // 橘
@@ -210,6 +213,7 @@ fun CameraTab(
                     Color(0xFFA78BFA), // 紫
                     Color(0xFFFACC15), // 黃
                 )
+                val dateColor = Color(0xFFFBBF24)
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     // ContentScale.Fit centers the image — compute actual displayed area
                     val imgAspect = imgW / imgH
@@ -233,27 +237,17 @@ fun CameraTab(
                     }
                     val scaleX = dispW / imgW
                     val scaleY = dispH / imgH
+
                     states.value.expiryItems.forEachIndexed { index, item ->
-                        val color = obbColors[index % obbColors.size]
-                        val pts = item.obb.map { Offset(it.x * scaleX + offsetX, it.y * scaleY + offsetY) }
-                        for (j in pts.indices) {
-                            drawLine(
-                                color = color,
-                                start = pts[j],
-                                end = pts[(j + 1) % pts.size],
-                                strokeWidth = 3.dp.toPx()
-                            )
-                        }
-                        item.dateBbox?.let { bbox ->
-                            drawRect(
-                                color = Color(0xFFFBBF24),
-                                topLeft = Offset(bbox[0] * scaleX + offsetX, bbox[1] * scaleY + offsetY),
-                                size = androidx.compose.ui.geometry.Size(
-                                    (bbox[2] - bbox[0]) * scaleX,
-                                    (bbox[3] - bbox[1]) * scaleY
-                                ),
-                                style = Stroke(width = 2.dp.toPx())
-                            )
+                        val color = boxColors[index % boxColors.size]
+                        val (boxTopLeft, boxSize) = bboxToRect(item.bbox, scaleX, scaleY, offsetX, offsetY)
+                        drawRect(color = color, topLeft = boxTopLeft, size = boxSize, style = Stroke(width = 3.dp.toPx()))
+                        drawBboxLabel(item.name, boxTopLeft, color)
+
+                        item.dateBbox?.let { dateBbox ->
+                            val (dateTopLeft, dateSize) = bboxToRect(dateBbox, scaleX, scaleY, offsetX, offsetY)
+                            drawRect(color = dateColor, topLeft = dateTopLeft, size = dateSize, style = Stroke(width = 2.dp.toPx()))
+                            item.dateStr?.let { dateStr -> drawBboxLabel(dateStr, dateTopLeft, dateColor) }
                         }
                     }
                 }
@@ -313,7 +307,7 @@ fun CameraTab(
                     }
                 }
                 states.value.expiryItems.isNotEmpty() -> {
-                    val failingItems = states.value.expiryItems.filter { it.isExpiryFailing() }
+                    val failingItems = states.value.expiryItems.filter { it.isExpiryFailing(expiryWarningMonths) }
                     if (failingItems.isNotEmpty()) {
                         Text(
                             text = "效期未合格 (${failingItems.size})",
@@ -324,7 +318,7 @@ fun CameraTab(
                         )
                         failingItems.forEach { item ->
                             Text(
-                                text = "• ${item.name} ${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
+                                text = "• ${item.name} ${item.dateStr ?: "未提供"}",
                                 color = AppColors.TextRed400,
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(start = 8.dp, bottom = 2.dp)
@@ -362,8 +356,8 @@ fun CameraTab(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = if (item.year == 0) "未提供" else "${item.year}/${item.month.toString().padStart(2, '0')}/${item.day.toString().padStart(2, '0')}",
-                                color = if (item.isExpiryFailing()) AppColors.TextRed400 else AppColors.TextBlue400,
+                                text = item.dateStr ?: "未提供",
+                                color = if (item.isExpiryFailing(expiryWarningMonths)) AppColors.TextRed400 else AppColors.TextBlue400,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -410,6 +404,47 @@ fun CameraTab(
         }
         Spacer(modifier = Modifier.height(20.dp))
     }
+}
+
+/** 將原圖座標的 [x1, y1, x2, y2] bbox 換算成畫布上實際顯示的 topLeft/size */
+private fun bboxToRect(
+    bbox: List<Double>,
+    scaleX: Float,
+    scaleY: Float,
+    offsetX: Float,
+    offsetY: Float
+): Pair<Offset, Size> {
+    val topLeft = Offset(
+        bbox[0].toFloat() * scaleX + offsetX,
+        bbox[1].toFloat() * scaleY + offsetY
+    )
+    val rectSize = Size(
+        (bbox[2] - bbox[0]).toFloat() * scaleX,
+        (bbox[3] - bbox[1]).toFloat() * scaleY
+    )
+    return topLeft to rectSize
+}
+
+/** 在 bbox 左上角畫出帶底色的文字標籤（框名稱 / 日期字串） */
+private fun DrawScope.drawBboxLabel(text: String, boxTopLeft: Offset, bgColor: Color) {
+    val textPaint = android.graphics.Paint().apply {
+        color = android.graphics.Color.BLACK
+        textSize = 28f
+        isAntiAlias = true
+    }
+    val textWidth = textPaint.measureText(text)
+    val bgTop = (boxTopLeft.y - 32f).coerceAtLeast(0f)
+    drawRect(
+        color = bgColor,
+        topLeft = Offset(boxTopLeft.x, bgTop),
+        size = Size(textWidth + 12f, 32f)
+    )
+    drawContext.canvas.nativeCanvas.drawText(
+        text,
+        boxTopLeft.x + 6f,
+        bgTop + 24f,
+        textPaint
+    )
 }
 
 fun Modifier.dashedBorder(

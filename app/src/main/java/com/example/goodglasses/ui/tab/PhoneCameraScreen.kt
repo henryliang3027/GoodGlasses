@@ -163,6 +163,7 @@ fun PhoneCameraScreen(
                                         Matrix().apply { postRotate(degrees) }, true
                                     )
                                 }
+                                Log.d("PhoneCameraScreen", "captured photo: width=${bitmap.width}, height=${bitmap.height}")
                                 onPhotoCaptured(bitmap)
                             }
                             override fun onError(exception: ImageCaptureException) {

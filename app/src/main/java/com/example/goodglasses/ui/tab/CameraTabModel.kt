@@ -9,6 +9,7 @@ import com.example.goodglasses.MetaGlassKitManager
 import com.example.goodglasses.PhoneCameraManager
 import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.util.Logger
+import com.example.goodglasses.data.DEFAULT_EXPIRY_WARNING_MONTHS
 import com.example.goodglasses.data.ExpiryItem
 import com.example.goodglasses.data.InventoryItem
 import com.example.goodglasses.data.InventoryRepository
@@ -64,6 +65,9 @@ class CameraTabModel(
 
     private val _appliedServerAddress = MutableStateFlow(repository.getServerAddress())
     val appliedServerAddress: StateFlow<String> = _appliedServerAddress
+
+    private val _expiryWarningMonths = MutableStateFlow(DEFAULT_EXPIRY_WARNING_MONTHS)
+    val expiryWarningMonths: StateFlow<Long> = _expiryWarningMonths
 
     init {
         manager.setSimulator(false)
@@ -195,13 +199,12 @@ class CameraTabModel(
                 onSuccess = { items ->
                     _uiState.update { it.copy(isAnalyzing = false, expiryItems = items, hasAnalyzed = true) }
                     if (items.isNotEmpty()) {
-                        val failingItems = items.filter { it.isExpiryFailing() }
+                        val failingItems = items.filter { it.isExpiryFailing(_expiryWarningMonths.value) }
                         val text = if (failingItems.isNotEmpty()) {
                             "偵測到未合格商品, ${failingItems.joinToString("、") { it.name }}"
                         } else {
                             "所有商品合格"
                         }
-
                         log.d(TAG, "speakText: $text")
                         speak(text)
                     } else {
@@ -287,6 +290,11 @@ class CameraTabModel(
     fun setServerAddress(ip: String, port: String) {
         repository.setServerAddress(ip, port)
         _appliedServerAddress.value = repository.getServerAddress()
+    }
+
+    fun setExpiryWarningMonths(months: Long) {
+        if (months < 1) return
+        _expiryWarningMonths.value = months
     }
 
     fun clearPreview() {
