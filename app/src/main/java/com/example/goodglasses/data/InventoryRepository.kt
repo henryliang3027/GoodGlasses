@@ -49,7 +49,7 @@ class InventoryRepository {
     private val client = OkHttpClient.Builder()
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
-    private var serverHost = "192.168.50.91"
+    private var serverHost = "192.168.51.80"
     private var serverPort = "5000"
     private val url: String
         get() = "http://$serverHost:$serverPort/check_out_of_stock"
