@@ -1,5 +1,9 @@
 package com.example.goodglasses.ui.tab
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,12 +21,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -34,6 +41,12 @@ import com.example.goodglasses.ViveGlassKitManager
 import com.example.goodglasses.ui.components.ViveHeaderSurface
 import com.example.goodglasses.ui.theme.AppColors
 import kotlinx.coroutines.launch
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 @Composable
 fun CameraScreen(
@@ -48,6 +61,24 @@ fun CameraScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var showPhoneCamera by remember { mutableStateOf(false) }
+
+    // CameraTab is landscape-only; the phone-camera capture screen is portrait-only.
+    // Switch the activity's locked orientation as we toggle between the two, and restore
+    // landscape once a photo is taken / the phone camera is dismissed.
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+    LaunchedEffect(showPhoneCamera) {
+        activity?.requestedOrientation = if (showPhoneCamera) {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         ModalNavigationDrawer(

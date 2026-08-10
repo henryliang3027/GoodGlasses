@@ -1,5 +1,6 @@
 package com.example.goodglasses.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -8,11 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -56,25 +60,47 @@ fun ViveHeaderSurface(
     onDeviceSourceChange: ((DeviceSource) -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit = {},
 ) {
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     CustomSurface() {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Header(
-                isConnected,
-                connectButtonText,
-                onConnectClick,
-                onMenuClick,
-                selectedDevice,
-                onDeviceSourceChange
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Box(
+        if (isLandscape) {
+            // No inline header row here — its height would eat into the preview/results
+            // area. The same controls are drawn as floating pills over the content instead.
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter,
+                    content = content
+                )
+                FloatingHeader(
+                    isConnected,
+                    connectButtonText,
+                    onConnectClick,
+                    onMenuClick,
+                    selectedDevice,
+                    onDeviceSourceChange
+                )
+            }
+        } else {
+            Column(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.TopCenter,
-                content = content
-            )
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Header(
+                    isConnected,
+                    connectButtonText,
+                    onConnectClick,
+                    onMenuClick,
+                    selectedDevice,
+                    onDeviceSourceChange
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter,
+                    content = content
+                )
+            }
         }
     }
 }
@@ -90,10 +116,17 @@ fun CustomSurface(
         color = AppColors.BgDarkPrimary,
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(
+                    // top: status bar / notch. horizontal+bottom: nav bar, whether it renders
+                    // as a bottom gesture bar (portrait) or a side rail (landscape).
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Top + WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                    )
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.TopCenter,
@@ -172,6 +205,79 @@ private fun Header(
         thickness = 1.dp, color = AppColors.BorderGray700_50,
         modifier = Modifier.padding(top = 0.dp, start = 0.dp, end = 0.dp, bottom = 10.dp)
     )
+}
+
+/**
+ * Landscape-only replacement for [Header]: same controls, but drawn as floating pills over
+ * the content (top-start menu, top-end device toggle/connect/status) instead of a reserved
+ * full-width row, so the preview and results panels can extend all the way to the top.
+ */
+@Composable
+private fun BoxScope.FloatingHeader(
+    isConnected: Boolean? = null,
+    connectButtonText: String? = null,
+    onConnectClick: (() -> Unit)? = null,
+    onMenuClick: (() -> Unit)? = null,
+    selectedDevice: DeviceSource = DeviceSource.HTC,
+    onDeviceSourceChange: ((DeviceSource) -> Unit)? = null,
+) {
+    var currentDevice by rememberSaveable { mutableStateOf(selectedDevice) }
+
+    if (onMenuClick != null) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(12.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(AppColors.BgGray900_90)
+        ) {
+            IconButton(onClick = onMenuClick, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = AppColors.TextWhite
+                )
+            }
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(12.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(AppColors.BgGray900_90)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DeviceSourceToggle(
+            selected = currentDevice,
+            onSelectedChange = {
+                currentDevice = it
+                onDeviceSourceChange?.invoke(it)
+            }
+        )
+        if (onConnectClick != null) {
+            Spacer(modifier = Modifier.width(6.dp))
+            IconButton(onClick = onConnectClick, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    painter = painterResource(R.drawable.power_off_solid_full),
+                    contentDescription = connectButtonText,
+                    tint = if (isConnected == true) AppColors.TextRed500 else AppColors.TextBlue400,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+        if (isConnected != null) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                painter = painterResource(R.drawable.circle_solid_full),
+                contentDescription = null,
+                tint = if (isConnected) AppColors.TextGreen400 else AppColors.TextRed500,
+                modifier = Modifier.size(10.dp)
+            )
+        }
+    }
 }
 
 @Composable

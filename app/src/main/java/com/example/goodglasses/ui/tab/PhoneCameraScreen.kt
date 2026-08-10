@@ -16,6 +16,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import android.view.Surface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -73,6 +74,12 @@ fun PhoneCameraScreen(
     val imageCapture = remember {
         ImageCapture.Builder()
             .setTargetAspectRatio(AspectRatio.RATIO_16_9)
+            // This screen is orientation-locked to portrait (see CameraScreen), so pin the
+            // rotation instead of letting CameraX infer it from the Display's rotation at
+            // build time — that value can still be the stale landscape one left over from
+            // CameraTab while the orientation lock is still settling, which produced photos
+            // with a wrong EXIF orientation and an extra 90° rotation on display.
+            .setTargetRotation(Surface.ROTATION_0)
             .build()
     }
     val providerRef = remember { arrayOfNulls<ProcessCameraProvider>(1) }
