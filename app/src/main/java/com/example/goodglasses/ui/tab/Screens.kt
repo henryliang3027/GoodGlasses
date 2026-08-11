@@ -5,14 +5,18 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
@@ -85,21 +89,11 @@ fun CameraScreen(
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet(drawerContainerColor = AppColors.BgDarkSecondary) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        "辨識模式",
-                        color = AppColors.TextGray300,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ModeToggle(
-                        selectedMode = states.analysisMode,
-                        onModeSelected = { vm.onEvent(CameraEvent.ModeChanged(it)) },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-
+                  Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
+                  ) {
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         "辨識伺服器",
@@ -190,6 +184,7 @@ fun CameraScreen(
                         fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
+                  }
                 }
             }
         ) {
@@ -209,9 +204,16 @@ fun CameraScreen(
             PhoneCameraScreen(
                 onPhotoCaptured = { bitmap ->
                     showPhoneCamera = false
+                    // PhoneCameraScreen's own ProcessCameraProvider.unbindAll() tore down
+                    // whatever PhoneCameraManager had bound; reset it so the next remote-key
+                    // capture rebinds a fresh camera instead of hitting a stale ImageCapture.
+                    phoneCameraManager.cleanup()
                     vm.onPhoneCapture(bitmap)
                 },
-                onDismiss = { showPhoneCamera = false }
+                onDismiss = {
+                    showPhoneCamera = false
+                    phoneCameraManager.cleanup()
+                }
             )
         }
     }

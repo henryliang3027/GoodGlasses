@@ -2,7 +2,6 @@ package com.example.goodglasses.ui.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -23,23 +22,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.goodglasses.R
 import com.example.goodglasses.ui.theme.AppColors
 
@@ -145,8 +137,6 @@ private fun Header(
     selectedDevice: DeviceSource = DeviceSource.HTC,
     onDeviceSourceChange: ((DeviceSource) -> Unit)? = null,
 ) {
-    var currentDevice by rememberSaveable { mutableStateOf(selectedDevice) }
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -164,14 +154,6 @@ private fun Header(
             Spacer(modifier = Modifier.width(8.dp))
         }
         Spacer(modifier = Modifier.weight(1f))
-        DeviceSourceToggle(
-            selected = currentDevice,
-            onSelectedChange = {
-                currentDevice = it
-                onDeviceSourceChange?.invoke(it)
-            }
-        )
-        Spacer(modifier = Modifier.width(10.dp))
         if (onConnectClick != null) {
             IconButton(onClick = onConnectClick, modifier = Modifier.size(36.dp)) {
                 Icon(
@@ -221,8 +203,6 @@ private fun BoxScope.FloatingHeader(
     selectedDevice: DeviceSource = DeviceSource.HTC,
     onDeviceSourceChange: ((DeviceSource) -> Unit)? = null,
 ) {
-    var currentDevice by rememberSaveable { mutableStateOf(selectedDevice) }
-
     if (onMenuClick != null) {
         Box(
             modifier = Modifier
@@ -250,15 +230,7 @@ private fun BoxScope.FloatingHeader(
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DeviceSourceToggle(
-            selected = currentDevice,
-            onSelectedChange = {
-                currentDevice = it
-                onDeviceSourceChange?.invoke(it)
-            }
-        )
         if (onConnectClick != null) {
-            Spacer(modifier = Modifier.width(6.dp))
             IconButton(onClick = onConnectClick, modifier = Modifier.size(32.dp)) {
                 Icon(
                     painter = painterResource(R.drawable.power_off_solid_full),
@@ -276,39 +248,6 @@ private fun BoxScope.FloatingHeader(
                 tint = if (isConnected) AppColors.TextGreen400 else AppColors.TextRed500,
                 modifier = Modifier.size(10.dp)
             )
-        }
-    }
-}
-
-@Composable
-private fun DeviceSourceToggle(
-    selected: DeviceSource,
-    onSelectedChange: (DeviceSource) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .height(26.dp)
-            .background(AppColors.BgGray800, RoundedCornerShape(13.dp))
-            .padding(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        DeviceSource.entries.forEach { source ->
-            val isSelected = source == selected
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(if (isSelected) AppColors.BgBlue600 else Color.Transparent)
-                    .clickable(enabled = !isSelected) { onSelectedChange(source) }
-                    .padding(horizontal = 10.dp, vertical = 3.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = source.name,
-                    color = if (isSelected) AppColors.TextWhite else AppColors.TextGray400,
-                    fontSize = 11.sp,
-                )
-            }
         }
     }
 }

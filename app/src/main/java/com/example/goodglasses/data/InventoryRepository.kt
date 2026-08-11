@@ -101,7 +101,7 @@ class InventoryRepository {
     suspend fun analyzeExpiry(bitmap: Bitmap): Result<List<ExpiryItem>> = withContext(Dispatchers.IO) {
         try {
             // 高度過大時縮小再上傳，回傳的 bbox 座標再等比例放大回原圖尺寸
-            val scaleFactor = if (bitmap.height >= 4000) 2 else 1
+            val scaleFactor = if (bitmap.height >= 4000 || bitmap.width >= 4000) 2 else 1
             val uploadBitmap = if (scaleFactor > 1) {
                 Bitmap.createScaledBitmap(bitmap, bitmap.width / scaleFactor, bitmap.height / scaleFactor, true)
             } else {
