@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
@@ -152,6 +153,7 @@ private fun CameraTabPortrait(
 
         ResultsPanel(
             states = states,
+            bmp = bmp,
             expiryWarningMonths = expiryWarningMonths,
             modifier = Modifier
                 .fillMaxWidth()
@@ -267,6 +269,7 @@ private fun CameraTabLandscape(
 
         ResultsPanel(
             states = states,
+            bmp = bmp,
             expiryWarningMonths = expiryWarningMonths,
             modifier = Modifier
                 .weight(1f)
@@ -386,6 +389,7 @@ private fun MediaPreviewBox(
 @Composable
 private fun ResultsPanel(
     states: CameraUiState,
+    bmp: Bitmap?,
     expiryWarningMonths: Long,
     modifier: Modifier = Modifier,
     scrollable: Boolean = false
@@ -478,21 +482,42 @@ private fun ResultsPanel(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = if (index == 0) 0.dp else 6.dp, bottom = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = item.name,
-                            color = AppColors.TextWhite,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = item.dateStr ?: "未提供",
-                            color = if (item.isExpiryFailing(expiryWarningMonths)) AppColors.TextRed400 else AppColors.TextBlue400,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        val thumbnail = remember(bmp, item.bbox) { bmp?.let { cropToBbox(it, item.bbox) } }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = item.name,
+                                color = AppColors.TextWhite,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = item.dateStr ?: "未提供",
+                                color = if (item.isExpiryFailing(expiryWarningMonths)) AppColors.TextRed400 else AppColors.TextBlue400,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(80.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AppColors.BgGray700)
+                        ) {
+                            thumbnail?.let {
+                                Image(
+                                    bitmap = it.asImageBitmap(),
+                                    contentDescription = item.name,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
                     }
                     if (index < states.expiryItems.lastIndex) {
                         HorizontalDivider(
@@ -580,6 +605,15 @@ private fun bboxToRect(
         (bbox[3] - bbox[1]).toFloat() * scaleY
     )
     return topLeft to rectSize
+}
+
+/** 依原圖座標的 [x1, y1, x2, y2] bbox 從來源圖裁切出縮圖，座標會被夾在圖片範圍內 */
+private fun cropToBbox(source: Bitmap, bbox: List<Double>): Bitmap? {
+    val x1 = bbox[0].toInt().coerceIn(0, source.width - 1)
+    val y1 = bbox[1].toInt().coerceIn(0, source.height - 1)
+    val x2 = bbox[2].toInt().coerceIn(x1 + 1, source.width)
+    val y2 = bbox[3].toInt().coerceIn(y1 + 1, source.height)
+    return runCatching { Bitmap.createBitmap(source, x1, y1, x2 - x1, y2 - y1) }.getOrNull()
 }
 
 /** 在 bbox 左上角畫出帶底色的文字標籤（框名稱 / 日期字串） */

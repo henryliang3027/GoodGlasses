@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,22 +65,20 @@ fun CameraScreen(
     val scope = rememberCoroutineScope()
     var showPhoneCamera by remember { mutableStateOf(false) }
 
-    // CameraTab is landscape-only; the phone-camera capture screen is portrait-only.
-    // Switch the activity's locked orientation as we toggle between the two, and restore
-    // landscape once a photo is taken / the phone camera is dismissed.
+    // CameraTab stays locked to landscape-right (not SENSOR_LANDSCAPE, which would also allow
+    // landscape-left). The phone-camera capture screen instead follows the sensor freely
+    // (portrait or landscape) — it adapts its own layout to whichever orientation the phone is
+    // physically held in (see PhoneCameraScreen's isPortrait check).
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
-    LaunchedEffect(showPhoneCamera) {
+    DisposableEffect(showPhoneCamera) {
         activity?.requestedOrientation = if (showPhoneCamera) {
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         } else {
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
         }
-    }
-    DisposableEffect(Unit) {
-        onDispose {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
+        vm.setPhoneCameraActive(showPhoneCamera)
+        onDispose {}
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
