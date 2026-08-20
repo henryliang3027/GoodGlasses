@@ -63,6 +63,7 @@ interface ViveGlassKitInterface {
 }
 
 const val TAG: String = "ViveGlassKit"
+private const val CONNECT_TIMEOUT_MS = 5000L
 
 class ViveGlassKitManager(
     private val glass: ViveGlass,
@@ -78,6 +79,9 @@ class ViveGlassKitManager(
 
     private val _connection = MutableStateFlow(false)
     override val connection: StateFlow<Boolean> = _connection.asStateFlow()
+
+    @Volatile private var isConnecting = false
+    @Volatile private var connectingSinceMs = 0L
 
     private val _isVideoStreaming = MutableStateFlow(false)
     override val isVideoStreaming: StateFlow<Boolean> = _isVideoStreaming.asStateFlow()
@@ -121,8 +125,10 @@ class ViveGlassKitManager(
                     onConnected()
                 ConnectionState.DISCONNECTED ->
                     onDisconnected()
-                ConnectionState.ERROR, null ->
+                ConnectionState.ERROR, null -> {
                     log.e(TAG, "onConnectionStateChanged() state: [$state]")
+                    isConnecting = false
+                }
             }
         }
 
@@ -272,20 +278,33 @@ class ViveGlassKitManager(
     // =======================
 
     override fun connect() {
+        val now = System.currentTimeMillis()
+        if (isConnecting && now - connectingSinceMs < CONNECT_TIMEOUT_MS) {
+            log.d(TAG, "connect() already connecting, skip")
+            return
+        }
+        if (isConnecting) {
+            log.d(TAG, "connect() previous attempt timed out, retrying")
+        }
         log.d(TAG, "connect()")
+        isConnecting = true
+        connectingSinceMs = now
         glass.connect(viveGlassClientCallback)
     }
 
     override fun disconnect() {
         log.d(TAG, "disconnect()")
+        isConnecting = false
         glass.disconnect()
     }
 
     private fun onConnected() {
+        isConnecting = false
         _connection.value = true
     }
 
     private fun onDisconnected() {
+        isConnecting = false
         _connection.value = false
         if (_isVideoStreaming.value)
             stopVideoStreaming()

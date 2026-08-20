@@ -27,11 +27,15 @@ import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val KEY_EVENT_TAG = "KeyEventListener"
+private const val HTC_REMOTE_CONNECT_TIMEOUT_MS = 5000L
 
 class MainActivity : AppCompatActivity() {
 
@@ -142,21 +146,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun triggerCaptureFromRemote() {
+        val vive = viveClientManager
         when {
-            viveClientManager?.isConnected() == true -> {
+            vive?.isConnected() == true -> {
                 Logger.instance.d(KEY_EVENT_TAG, "HTC glasses connected, triggering captureImage()")
-
-                viveClientManager?.captureImage()
-//                phoneCameraManager?.captureImage()
-//                viveClientManager?.speakText("分析中")
+                vive.captureImage()
             }
             metaGlassKitManager?.isConnected() == true -> {
                 Logger.instance.d(KEY_EVENT_TAG, "Meta glasses connected, triggering captureImage()")
                 metaGlassKitManager?.captureImage()
             }
+            vive != null -> {
+                Logger.instance.d(KEY_EVENT_TAG, "HTC glasses not connected, connecting before capture")
+                lifecycleScope.launch {
+                    vive.connect()
+                    val connected = withTimeoutOrNull(HTC_REMOTE_CONNECT_TIMEOUT_MS) {
+                        vive.connection.first { it }
+                    } != null
+                    if (connected) {
+                        Logger.instance.d(KEY_EVENT_TAG, "HTC glasses connected, triggering captureImage()")
+                        vive.captureImage()
+                    } else {
+                        Logger.instance.e(KEY_EVENT_TAG, "HTC glasses failed to connect within timeout, capture aborted")
+                    }
+                }
+            }
             else -> {
-                Logger.instance.d(KEY_EVENT_TAG, "No source device connected, capturing with phone camera")
-                phoneCameraManager?.captureImage()
+                Logger.instance.e(KEY_EVENT_TAG, "No HTC glasses manager available, capture aborted")
             }
         }
     }

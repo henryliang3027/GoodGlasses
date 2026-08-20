@@ -16,17 +16,16 @@ import com.example.goodglasses.data.InventoryRepository
 import com.example.goodglasses.data.isExpiryFailing
 import com.example.goodglasses.ui.components.DeviceSource
 import com.htc.viveglass.sdk.KeyEvent
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 enum class AnalysisMode { INVENTORY, EXPIRY }
 
-private const val CONNECT_POLL_INTERVAL_MS = 1000L
+private const val HTC_KEY_EVENT_CONNECT_TIMEOUT_MS = 5000L
 
 data class CameraUiState(
     val isConnected: Boolean = false,
@@ -75,11 +74,9 @@ class CameraTabModel(
     val expiryWarningMonths: StateFlow<Long> = _expiryWarningMonths
 
     private val _isPhoneCameraActive = MutableStateFlow(false)
-    private var connectPollJob: Job? = null
 
     init {
         manager.setSimulator(false)
-        startConnectPolling()
 
         viewModelScope.launch {
             manager.connection.collect { connected ->
@@ -90,7 +87,6 @@ class CameraTabModel(
                             textConnectButton = if (!connected) "Connect" else "Disconnect"
                         )
                     }
-                    if (!connected) startConnectPolling()
                 }
             }
         }
@@ -150,30 +146,26 @@ class CameraTabModel(
             manager.keyEvent.collect { event ->
                 if (event == KeyEvent.AIBUTTON) {
                     clearPreview()
-                    manager.captureImage()
+                    captureWithHtcConnect()
                 }
             }
         }
     }
 
-    private fun startConnectPolling() {
-        if (connectPollJob?.isActive == true) return
-        log.d(TAG, "startConnectPolling() started")
-        connectPollJob = viewModelScope.launch {
-            while (isActive) {
-                if (_uiState.value.isConnected) {
-                    log.d(TAG, "startConnectPolling() already connected, stop polling")
-                    break
-                }
-                if (!_isPhoneCameraActive.value && _uiState.value.deviceSource == DeviceSource.HTC) {
-                    log.d(TAG, "startConnectPolling() not connected, calling connect()")
-                    manager.connect()
-                } else {
-                    log.d(TAG, "startConnectPolling() skip connect() - phoneCameraActive=${_isPhoneCameraActive.value}, deviceSource=${_uiState.value.deviceSource}")
-                }
-                delay(CONNECT_POLL_INTERVAL_MS)
-            }
-            connectPollJob = null
+    private suspend fun captureWithHtcConnect() {
+        if (manager.isConnected()) {
+            manager.captureImage()
+            return
+        }
+        log.d(TAG, "captureWithHtcConnect() HTC glasses not connected, connecting before capture")
+        manager.connect()
+        val connected = withTimeoutOrNull(HTC_KEY_EVENT_CONNECT_TIMEOUT_MS) {
+            manager.connection.first { it }
+        } != null
+        if (connected) {
+            manager.captureImage()
+        } else {
+            log.e(TAG, "captureWithHtcConnect() HTC glasses failed to connect within timeout, capture aborted")
         }
     }
 
@@ -257,10 +249,7 @@ class CameraTabModel(
             CameraEvent.ConnectClicked -> {
                 when (uiState.value.deviceSource) {
                     DeviceSource.HTC ->
-                        if (!uiState.value.isConnected) manager.connect() else {
-                            manager.disconnect()
-                            startConnectPolling()
-                        }
+                        if (!uiState.value.isConnected) manager.connect() else manager.disconnect()
                     DeviceSource.META ->
                         if (!uiState.value.isConnected) metaGlassKitManager.connect() else metaGlassKitManager.disconnect()
                 }
@@ -300,10 +289,7 @@ class CameraTabModel(
 
                 when (newSource) {
                     DeviceSource.META -> manager.disconnect()
-                    DeviceSource.HTC -> {
-                        metaGlassKitManager.disconnect()
-                        startConnectPolling()
-                    }
+                    DeviceSource.HTC -> metaGlassKitManager.disconnect()
                 }
                 _uiState.update {
                     it.copy(
