@@ -1,7 +1,9 @@
 package com.example.goodglasses.ui.components
 
 import android.content.res.Configuration
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -22,12 +24,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -144,13 +145,11 @@ private fun Header(
             .height(30.dp)
     ) {
         if (onMenuClick != null) {
-            IconButton(onClick = onMenuClick, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = AppColors.TextWhite
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.logo),
+                contentDescription = null,
+                modifier = Modifier.size(36.dp)
+            )
             Spacer(modifier = Modifier.width(8.dp))
         }
         Spacer(modifier = Modifier.weight(1f))
@@ -206,18 +205,18 @@ private fun BoxScope.FloatingHeader(
     if (onMenuClick != null) {
         Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(12.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(AppColors.BgGray900_90)
+                .align(Alignment.BottomStart)
+                .padding(start = 2.dp, bottom = 2.dp)
+                .background(Color.White)
+                .border(1.dp, AppColors.BgDarkPrimary,)
         ) {
-            IconButton(onClick = onMenuClick, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = AppColors.TextWhite
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .width(170.dp)
+                    .height(22.dp)
+            )
         }
     }
 

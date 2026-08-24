@@ -560,7 +560,7 @@ private fun CaptureIconButton(
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(50.dp)
                 .clip(CircleShape)
                 .background(if (enabled) background else AppColors.BgGray700)
                 .clickable(enabled = enabled, onClick = onClick),

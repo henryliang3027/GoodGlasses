@@ -230,7 +230,7 @@ private fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 private fun CaptureButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier = modifier
-            .size(72.dp)
+            .size(60.dp)
             .background(Color.White.copy(alpha = 0.25f), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
